@@ -68,10 +68,18 @@ st.markdown("""
 # Initialize Database
 db.init_db()
 
+# Fetch latest news upfront for auto-populating default topic
+news_items = fetch_latest_football_news()
+default_latest_topic = news_items[0]['title'] if news_items else "Galatasaray Transfer ve VAR Gündemi"
+
+# Initialize Session State Topic Box dynamically from latest news (No static hardcoded text!)
+if 'topic_box' not in st.session_state or not st.session_state['topic_box']:
+    st.session_state['topic_box'] = default_latest_topic
+
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
 st.sidebar.markdown("**@Boss_Osimhen Organik X Otomasyonu**")
-st.sidebar.caption("🎯 İnsan Gibi Yazan & Viral Etkileşim Motoru")
+st.sidebar.caption("🎯 X Duyumcuları & Futbol Muhabirleri Akışı")
 st.sidebar.divider()
 
 # Stats Widgets
@@ -97,8 +105,8 @@ if mock_mode:
     st.sidebar.info("ℹ️ **Simülasyon Modu Aktif**: Paylaşımlar gerçek X hesabına gönderilmez, test modunda simüle edilir.")
 
 # Header
-st.title("⚽ Galatasaray X Organik Viral Bot & Onay Paneli")
-st.caption("Gerçek bir insan gibi yazan, yüksek etkileşim alan ve bot hissettirmeyen tweetler üretin!")
+st.title("⚽ Galatasaray X Duyum & Trend İçerik Botu")
+st.caption("X duyumcuları ve futbol muhabirlerinin sıcak gündemini otomatik takip edin, organık tweetler üretin!")
 
 # Navigation Tabs
 tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
@@ -108,10 +116,6 @@ tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
     "💰 X Para Kazanma Taktikleri"
 ])
 
-# Initialize Session State Topic Key
-if 'topic_box' not in st.session_state:
-    st.session_state['topic_box'] = "Lucas Torreira transfer gelişmesi"
-
 # ---------------------------------------------------------
 # TAB 1: İÇERİK ÜRETİMİ
 # ---------------------------------------------------------
@@ -119,14 +123,11 @@ with tab_create:
     col_news, col_gen = st.columns([1, 1])
     
     with col_news:
-        st.subheader("🔥 X (Twitter) Anlık Trendler & GS Gündemi")
-        st.caption("Twitter'da en çok konuşulan başlıklara tıklayarak anında organik tweet üretebilirsiniz.")
+        st.subheader("🚨 X Duyumcu & Futbol Muhabirleri Akışı")
+        st.caption("Büyük futbol Twitter sayfaları ve duyumcuların sıcak haberlerine tıklayarak tweet üretebilirsiniz.")
         
-        if st.button("🔄 Gündem Trendlerini Yenile"):
+        if st.button("🔄 Gündemi Yenile"):
             st.rerun()
-            
-        with st.spinner("Son futbol haberleri ve X trendleri çekiliyor..."):
-            news_items = fetch_latest_football_news()
             
         for idx, item in enumerate(news_items):
             with st.expander(f"📌 {item['source']}: {item['title']}"):
@@ -148,7 +149,7 @@ with tab_create:
     with col_gen:
         st.subheader("✏️ Organik İnsan Ağzıyla İçerik Üretici")
         
-        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Gündem Başlığı:", key="topic_box", height=90)
+        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", key="topic_box", height=90)
         
         c1, c2, c3 = st.columns(3)
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
