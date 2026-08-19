@@ -34,7 +34,7 @@ except Exception:
 
 # Page Config
 st.set_page_config(
-    page_title="Galatasaray X İçerik Botu & Onay Paneli",
+    page_title="Galatasaray X Botu & Onay Paneli",
     page_icon="⚽",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -60,22 +60,19 @@ if not st.session_state["authenticated"]:
                 st.error("❌ Hatalı PIN Kodu!")
     st.stop()
 
-# Safe Wrapper to 100% prevent any Streamlit red error traceback box
-def safe_generate_tweet(topic, category="Gündem", tone="Organik Taraftar Ağzı (Doğal & Samimi)", style="Tartışma & Yorum Alıcı (Yüksek Yorum)", mode="emoji"):
+# Safe Tweet Generation Engine
+def run_tweet_engine(topic, category, tone, style, mode):
     clean_t = purge_newspaper_names(topic)
     try:
         return generate_tweet_content(topic=clean_t, category=category, tone=tone, style=style, mode=mode)
     except Exception:
-        try:
-            return generate_tweet_content(clean_t, category, tone, style, mode)
-        except Exception:
-            return {
-                "title": clean_t[:50],
-                "content": f"Abi valla {clean_t} duyumunu görünce şaşırmadım! Galatasaray sahada cevabını net verir kardeş 💛❤️ #Galatasaray #GS",
-                "category": category,
-                "media_type": "none",
-                "media_url": None
-            }
+        return {
+            "title": clean_t[:50],
+            "content": f"Abi valla {clean_t} konusunu görünce gülüyorum artık. Kimse boşuna heveslenmesin, biz şampiyonluğa kilitlendik kardeş! 💛❤️ #Galatasaray #GS",
+            "category": category,
+            "media_type": "none",
+            "media_url": None
+        }
 
 # Custom Styling (Galatasaray Red & Gold Yellow theme)
 st.markdown("""
@@ -102,7 +99,7 @@ st.markdown("""
 # Initialize Database
 db.init_db()
 
-# Fetch latest news upfront and purge all newspaper names completely
+# Fetch news items
 raw_news_items = news_fetcher.fetch_latest_football_news()
 news_items = []
 for item in raw_news_items:
@@ -114,17 +111,15 @@ for item in raw_news_items:
         "source": item['source']
     })
 
-default_latest_topic = news_items[0]['title'] if news_items else "🚨 Mauro Icardi transfer gündemi hakkında sıcak gelişme"
+default_topic = news_items[0]['title'] if news_items else "🚨 Mauro Icardi transfer gündemi hakkında sıcak gelişme"
 
-# Initialize Session State Topic Box dynamically from latest clean news
-if 'topic_box' not in st.session_state or not st.session_state['topic_box']:
-    st.session_state['topic_box'] = default_latest_topic
-else:
-    st.session_state['topic_box'] = purge_newspaper_names(st.session_state['topic_box'])
+# Initialize Session State
+if 'topic_box' not in st.session_state:
+    st.session_state['topic_box'] = default_topic
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
-st.sidebar.markdown("**@Boss_Osimhen Organik Otomasyonu**")
+st.sidebar.markdown("**@Boss_Osimhen Organik X Otomasyonu**")
 st.sidebar.caption("🎯 @Boss_Osimhen Taraftar Personası & Viral Akış")
 st.sidebar.divider()
 
@@ -162,19 +157,6 @@ tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
     "💰 X Para Kazanma Taktikleri"
 ])
 
-# Callback function for news buttons to force update topic box & tweet generation
-def trigger_news_tweet(topic_title):
-    clean_title = purge_newspaper_names(topic_title)
-    st.session_state['topic_box'] = clean_title
-    generated = safe_generate_tweet(
-        topic=clean_title,
-        category="Transfer",
-        tone=st.session_state.get('tone_select', "Organik Taraftar Ağzı (Doğal & Samimi)"),
-        style=st.session_state.get('style_select', "Tartışma & Yorum Alıcı (Yüksek Yorum)"),
-        mode="emoji"
-    )
-    st.session_state['last_generated'] = generated
-
 # ---------------------------------------------------------
 # TAB 1: İÇERİK ÜRETİMİ
 # ---------------------------------------------------------
@@ -182,43 +164,47 @@ with tab_create:
     col_news, col_gen = st.columns([1, 1])
     
     with col_news:
-        st.subheader("🚨 X Duyumcu & Futbol Akışı")
+        st.subheader("🚨 Sıcak Futbol & Transfer Akışı")
         st.caption("Aşağıdaki sıcak futbol gündemlerine tıklayarak anında @Boss_Osimhen taraftar ağzıyla tweet üretebilirsiniz.")
         
-        if st.button("🔄 Gündemi Yenile"):
+        if st.button("🔄 Gündemi Yenile", use_container_width=True):
             st.rerun()
             
         for idx, item in enumerate(news_items):
             with st.expander(f"📌 {item['source']}: {item['title']}"):
                 st.write(item['summary'])
-                st.button(
-                    f"⚡ Bu Konudan Anında Tweet Üret", 
-                    key=f"news_btn_{idx}",
-                    on_click=trigger_news_tweet,
-                    args=(item['title'],)
-                )
+                if st.button(f"⚡ Bu Konudan Tweet Üret", key=f"btn_news_{idx}"):
+                    st.session_state['topic_box'] = item['title']
+                    gen = run_tweet_engine(
+                        topic=item['title'],
+                        category="Transfer",
+                        tone="Organik Taraftar Ağzı (@Boss_Osimhen)",
+                        style="Tartışma & Yorum Alıcı",
+                        mode="emoji"
+                    )
+                    st.session_state['last_generated'] = gen
+                    st.rerun()
                     
     with col_gen:
         st.subheader("✏️ @Boss_Osimhen Taraftar Tweet Üretici")
         
-        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", key="topic_box", height=90)
+        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", value=st.session_state.get('topic_box', default_topic), height=90)
         
         c1, c2, c3 = st.columns(3)
-        category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"], key="cat_select")
+        category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
         tone_input = c2.selectbox("Söylem Tonu:", [
-            "Organik Taraftar Ağzı (Doğal & Samimi)", 
-            "Le Marca Style (Profesyonel Muhabir)", 
+            "Organik Taraftar Ağzı (@Boss_Osimhen)", 
+            "Le Marca Style (Haber & Kaynak)", 
             "Sert & Eleştirel", 
             "Tutkulu Taraftar", 
             "Taktik Analiz"
-        ], key="tone_select")
+        ])
         style_input = c3.selectbox("Etkileşim Formatı:", [
-            "Tartışma & Yorum Alıcı (Yüksek Yorum)", 
+            "Tartışma & Yorum Alıcı", 
             "💬 Alıntı & Tepki Tweeti",
             "📊 X Anket Formatı",
-            "Haber & Kaynak Formatı (Le Marca)", 
             "🚨 Flaş Son Dakika"
-        ], key="style_select")
+        ])
         
         st.markdown("### 🎯 İçerik Formatı Seçin:")
         btn_c1, btn_c2 = st.columns(2)
@@ -227,30 +213,32 @@ with tab_create:
             if not topic_input.strip():
                 st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
-                with st.spinner(f"'{topic_input}' hakkında '{tone_input}' tonunda tweet üretiliyor..."):
-                    generated = safe_generate_tweet(
+                with st.spinner("Organik tweet üretiliyor..."):
+                    gen = run_tweet_engine(
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
                         style=style_input,
                         mode="emoji"
                     )
-                    st.session_state['last_generated'] = generated
+                    st.session_state['last_generated'] = gen
+                    st.session_state['topic_box'] = topic_input
                     st.rerun()
 
         if btn_c2.button("🎨 Görselli Grafik Tweeti Üret", use_container_width=True):
             if not topic_input.strip():
                 st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
-                with st.spinner(f"'{topic_input}' hakkında görselli tweet üretiliyor..."):
-                    generated = safe_generate_tweet(
+                with st.spinner("Görselli grafik tweeti üretiliyor..."):
+                    gen = run_tweet_engine(
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
                         style=style_input,
                         mode="graphic"
                     )
-                    st.session_state['last_generated'] = generated
+                    st.session_state['last_generated'] = gen
+                    st.session_state['topic_box'] = topic_input
                     st.rerun()
                     
         if 'last_generated' in st.session_state:
@@ -264,7 +252,7 @@ with tab_create:
                 st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=500)
                 
             b1, b2 = st.columns(2)
-            if b1.button("💾 Taslaklara Kaydet"):
+            if b1.button("💾 Taslaklara Kaydet", use_container_width=True):
                 draft_id = db.create_draft(
                     title=gen_data['title'],
                     content=gen_data['content'],
@@ -276,7 +264,7 @@ with tab_create:
                 del st.session_state['last_generated']
                 st.rerun()
                 
-            if b2.button("🚀 Anında Paylaş"):
+            if b2.button("🚀 Anında Paylaş", use_container_width=True):
                 success, tweet_res = publish_tweet(gen_data['content'], gen_data.get('media_url'))
                 if success:
                     db.create_draft(
