@@ -35,7 +35,6 @@ if not st.session_state["authenticated"]:
                 st.error("❌ Hatalı PIN Kodu!")
     st.stop()
 
-
 # Custom Styling (Galatasaray Red & Gold Yellow theme)
 st.markdown("""
     <style>
@@ -55,27 +54,6 @@ st.markdown("""
         background-color: #FDB913;
         color: #A90429;
     }
-    .card-box {
-        background-color: #1a1c24;
-        padding: 20px;
-        border-radius: 12px;
-        border-left: 6px solid #FDB913;
-        margin-bottom: 20px;
-    }
-    .badge-draft {
-        background-color: #ff9800;
-        color: black;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: bold;
-    }
-    .badge-published {
-        background-color: #4caf50;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: bold;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -83,9 +61,8 @@ st.markdown("""
 db.init_db()
 
 # Sidebar Setup
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/3/37/Galatasaray_Star_Logo.png", width=100) if False else None
 st.sidebar.title("💛❤️ GS Twitter Bot")
-st.sidebar.markdown("**Galatasaray & Futbol İçerik Otomasyonu**")
+st.sidebar.markdown("**@Boss_Osimhen İçerik Otomasyonu**")
 st.sidebar.divider()
 
 # Stats Widgets
@@ -111,8 +88,8 @@ if mock_mode:
     st.sidebar.info("ℹ️ **Simülasyon Modu Aktif**: Paylaşımlar gerçek X hesabına gönderilmez, test modunda simüle edilir.")
 
 # Header
-st.title("⚽ Galatasaray X (Twitter) İçerik Botu & Taslak Paneli")
-st.caption("Gündemi takip edin, tutkulu ve sert Galatasaray içerikleri üretin, taslakları kontrol edip tek tıkla paylaşın!")
+st.title("⚽ Galatasaray X (Twitter) İçerik Botu & Onay Paneli")
+st.caption("Gündemi takip edin, Emojili Metin veya Grafik Görselli tweetler üretin, kontrol edip paylaşın!")
 
 # Navigation Tabs
 tab_create, tab_drafts, tab_history, tab_settings = st.tabs([
@@ -157,18 +134,26 @@ with tab_create:
         category_input = c1.selectbox("Kategori:", ["Hakem Eleştirisi", "Transfer", "Maç Analizi", "Gündem", "Genel"])
         tone_input = c2.selectbox("Söylem Tonu:", ["Sert & Eleştirel", "Tutkulu Taraftar", "Taktik Analiz", "Mizahi & İğneleyici"])
         
-        include_card_input = st.checkbox("Sarı-Kırmızı Grafik Kartı Görseli Oluştur", value=True)
+        st.markdown("### 🎯 İçerik Formatı Seçin:")
+        btn_c1, btn_c2 = st.columns(2)
         
-        if st.button("🔥 Tweet ve Görsel Üret"):
+        generate_mode = None
+        if btn_c1.button("🔥 Emojili Metin Tweeti Üret (Görselsiz)", use_container_width=True):
+            generate_mode = "emoji"
+            
+        if btn_c2.button("🎨 Görselli Grafik Tweeti Üret", use_container_width=True):
+            generate_mode = "graphic"
+            
+        if generate_mode:
             if not topic_input.strip():
                 st.warning("Lütfen bir konu başlığı girin.")
             else:
-                with st.spinner("GS Taraftarı tonunda içerik ve görsel hazırlanıyor..."):
+                with st.spinner("İçerik hazırlanıyor..."):
                     generated = generate_tweet_content(
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
-                        include_card=include_card_input
+                        mode=generate_mode
                     )
                     st.session_state['last_generated'] = generated
                     
@@ -180,7 +165,7 @@ with tab_create:
             st.text_area("Üretilen Metin:", value=gen_data['content'], height=120, key="preview_text")
             
             if gen_data.get('media_url') and os.path.exists(gen_data['media_url']):
-                st.image(gen_data['media_url'], caption="Oluşturulan GS Grafik Kartı", use_container_width=True)
+                st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=550)
                 
             b1, b2 = st.columns(2)
             if b1.button("💾 Taslaklara Kaydet"):
@@ -232,9 +217,9 @@ with tab_drafts:
                 
                 with col_d_img:
                     if draft['media_url'] and os.path.exists(draft['media_url']):
-                        st.image(draft['media_url'], use_container_width=True)
+                        st.image(draft['media_url'], width=380)
                     else:
-                        st.write("🖼️ *Görsel yok*")
+                        st.write("📝 *Sadece Metin Tweeti (Görselsiz)*")
                         
                 with col_d_content:
                     edited_content = st.text_area(
@@ -260,7 +245,7 @@ with tab_drafts:
                         st.toast("Taslak güncellendi!", icon="💾")
                         
                     if btn_col3.button("🎨 Yeni Görsel Üret", key=f"reimage_{draft['id']}"):
-                        new_img = generate_gs_card(text=edited_content[:220], category=draft['category'].upper())
+                        new_img = generate_gs_card(text=edited_content[:200], category=draft['category'])
                         db.update_draft(draft['id'], media_url=new_img)
                         st.rerun()
                         
@@ -307,5 +292,5 @@ with tab_settings:
         "Database Status": "Aktif (SQLite)",
         "Gemini API Status": "Aktif" if os.getenv("GEMINI_API_KEY") else "API Key Yok (Varsayılan Şablon Modu)",
         "Twitter API Status": "Aktif" if os.getenv("X_API_KEY") else "Simülasyon / Mock Modu",
-        "Görsel Üreteci": "GS Sarı-Kırmızı Card Engine (PIL) Ready"
+        "Görsel Üreteci": "Kompakt GS Card Engine (@Boss_Osimhen)"
     })

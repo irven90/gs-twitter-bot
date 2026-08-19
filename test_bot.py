@@ -8,14 +8,13 @@ def test_database():
     db.init_db()
     draft_id = db.create_draft(
         title="Test Maç Analizi",
-        content="Galatasaray sahada inanılmaz bir hırs sergiledi. Hakem kararlarına rağmen 3 puanı aldık! #Galatasaray",
+        content="Galatasaray sahada inanılmaz bir hırs sergiledi. Hakem kararlarına rağmen 3 puanı aldık! 💛❤️ #Galatasaray",
         category="Maç Analizi"
     )
     assert draft_id is not None
     drafts = db.get_drafts(status='draft')
     assert len(drafts) >= 1
     
-    # Test update
     db.update_draft(draft_id, status='published', tweet_id="test_12345")
     updated = db.get_draft_by_id(draft_id)
     assert updated['status'] == 'published'
@@ -23,20 +22,29 @@ def test_database():
     print("✅ Veritabanı testleri başarılı!")
 
 def test_ai_generator_and_cards():
-    res = generate_tweet_content(
+    # Test Emoji mode
+    res_emoji = generate_tweet_content(
         topic="Süper Lig VAR Hakem Kararları",
         category="Hakem Eleştirisi",
         tone="Sert & Eleştirel",
-        include_card=True
+        mode="emoji"
     )
-    assert "content" in res
-    assert len(res["content"]) > 10
-    if res.get("media_url"):
-        assert os.path.exists(res["media_url"])
-    print("✅ AI İçerik ve Görsel Kart Üretim testi başarılı!")
+    assert "content" in res_emoji
+    assert res_emoji["media_type"] == "none"
+    
+    # Test Graphic mode
+    res_graphic = generate_tweet_content(
+        topic="Süper Lig VAR Hakem Kararları",
+        category="Hakem Eleştirisi",
+        tone="Sert & Eleştirel",
+        mode="graphic"
+    )
+    assert "content" in res_graphic
+    assert res_graphic.get("media_url") and os.path.exists(res_graphic["media_url"])
+    print("✅ AI Emojili Metin ve Kompakt Görsel Kart Üretim testi başarılı!")
 
 def test_publisher():
-    success, res_id = publish_tweet("Test tweet metni #Galatasaray")
+    success, res_id = publish_tweet("Test tweet metni 💛❤️ #Galatasaray")
     assert success is True
     print(f"✅ Paylaşım (Simülasyon) testi başarılı: {res_id}")
 
