@@ -1,5 +1,6 @@
 import os
 import random
+import re
 from typing import Dict, Any
 from card_generator import generate_gs_card
 
@@ -9,79 +10,72 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
 
-SYSTEM_PROMPT_EMOJI = """
-Sen tutkulu, lafını esirgemeyen, futbolu ve Galatasaray'ı çok iyi bilen iddalı bir GALATASARAY yorumcususun (@Boss_Osimhen).
-Sana verilen oyuncu ismi, transfer haberi veya gündem hakkında bol emojili (💛❤️, 🔥, ⚽, 🏆, 🦁, 💪, 🗣️, 💥, ❌, 👑), dikkat çekici, yüksek etkileşim alacak Türkçe tweetler yazıyorsun.
+# VIRAL TWEET HOOKS & STRUCTURES (X Türkiye Futbol Etkileşim Formülleri)
+VIRAL_PROMPT = """
+Sen X (Twitter) Türkiye'de 100 binlerce takipçisi olan, yüksek etkileşim (beğeni, rt, yorum) alan profesyonel bir GALATASARAY yorumcususun (@Boss_Osimhen).
+Amacın: X Monetization (Para kazanma) algoritmasına uygun olarak YÜKSEK ETKİLEŞİM VE VİRAL TWEETLER yazmak.
 
-Kurallar:
-1. İstenen tonu ({tone}) birebir uygula! Eğer 'Mizahi & İğneleyici' seçildiyse ince espri ve iğneleyici futbol mizahı yap. 'Sert & Eleştirel' ise tavizsiz, sert eleştir!
-2. İstenen oyuncu/konudan ({topic}) doğrudan bahset!
-3. Tweetin sonuna Türkçe hashtagler ekle (#Galatasaray #GS #SüperLig).
-4. Tweet uzunluğu 240 karakteri kesinlikle geçmesin.
-5. Her üretildiğinde %100 FARKLI cümle ve kelimeler kullan!
+Girdi Konusu / Haber: "{topic}"
+Kategori: "{category}"
+Söylem Tonu: "{tone}"
+Format Tarzı: "{style}"
+
+VİRAL FORMAT KURALLARI:
+1. Haberle %100 doğrudan alakalı ol! Verilen haberi/oyuncuyu ("{topic}") tam odağına al. Asla alakasız genel cümleler kurma!
+2. Etkileşim Yöntemleri:
+   - 'Tartışma & Yorum Alıcı': Tweetin sonuna takipçilere soru sor ("Sizce ne yapılmalı?", "Katılıyor musunuz?", "Bu karar doğru mu?") -> Yorumları uçurur!
+   - 'Flaş Haber': "🚨 FLAŞ |", "💣 SON DAKİKA |" veya "💥 ÖZEL |" ile başla -> Retweet ve Beğeni çeker!
+   - 'Sert Eleştiri': Hakem veya rakip algılarına karşı tavizsiz, net cümleler kur.
+3. Emojiler: 💛❤️, 🦁, 🚨, 💣, ⚽, 🏆, 💥, 📊 gibi dikkat çekici emojiler kullan.
+4. Maksimum 230 karakter olsun. Sonuna 2-3 Türkçe hashtag ekle (#Galatasaray #GS).
+5. Asla bot gibi durmasın; gerçek hırslı bir futbol yorumcusu ağzıyla yaz!
 """
 
-SYSTEM_PROMPT_GRAPHIC = """
-Sen Galatasaray yorumcusu @Boss_Osimhen olarak verilen oyuncu veya gündem konusu ({topic}) hakkında grafik kart üzerinde yayınlanacak kısa ve vurucu bir Türkçe yorum yazıyorsun.
-Metin resmi, kaliteli, hırslı ve net bir futbol yorumu olsun.
-İstenen ton: {tone}.
-"""
+# VIRAL FALLBACK GENERATOR (Gelişmiş Mantıklı Şablon Motoru)
+def generate_viral_fallback(topic: str, category: str, style: str) -> str:
+    clean_topic = topic.strip()
+    
+    if "Transfer" in category or "transfer" in clean_topic.lower():
+        if "tartışma" in style.lower() or "yorum" in style.lower():
+            return f"🚨 FLAŞ | {clean_topic} gündeminde sıcak gelişmeler yaşanıyor! 💛❤️ Peki taraftar ne düşünüyor? Sizce bu transfer gerçekleşmeli mi? Yorumları alalım! 🦁👇 #Galatasaray #Transfer"
+        elif "flaş" in style.lower():
+            return f"💣 SON DAKİKA | {clean_topic}! Masadaki pazarlıklarda son aşamaya gelindi. Bu hamle Avrupa hedefi için kilit önemde! 💛❤️ #Galatasaray #GS"
+        else:
+            return f"💥 {clean_topic}! Galatasaray yönetimi bu transferde masaya yumruğunu vurmalı. Sahada formanın hakkını verecek yıldızlar şart! 💛❤️ #Galatasaray"
+            
+    elif "Hakem" in category or "hakem" in clean_topic.lower() or "var" in clean_topic.lower():
+        return f"🚨 Açık açık soruyorum: {clean_topic} konusunda gösterilen bu çifte standart daha ne kadar sürecek? 💛❤️ Galatasaray'ın hakkı göz göre göre yeniyor! Katılıyor musunuz? 🦁💥 #Galatasaray #SüperLig"
+        
+    elif "Maç" in category or "maç" in clean_topic.lower():
+        return f"⚽ {clean_topic}! Sahada hırs, pres ve mücadele istiyoruz. Galatasaray forması pasif futbolu kaldırmaz! 💛❤️ Bu maça dair beklentiniz nedir? 🦁🔥 #Galatasaray"
+        
+    else:
+        return f"🚨 FLAŞ | {clean_topic}! Türkiye'nin amiral gemisi Galatasaray hakkında çıkan bu haberler tesadüf değil. Sarı-kırmızı hırsın önüne geçemezsiniz! 💛❤️ #Galatasaray #Cimbom"
 
-FALLBACK_EMOJI_TWEETS = {
-    "Transfer": [
-        "Galatasaray yönetimi {topic} transferinde artık masaya yumruğunu vurmalı! 💛❤️ Avrupa'da başarı hedefliyorsak böyle kaliteli isimler şart! ⚽ İmzalar gecikmeden atılmalı! 🦁🔥 #Galatasaray #Transfer",
-        "{topic} iddiası taraftarı heyecanlandırdı! 💛❤️ Bize sahada formanın hakkını verecek hırslı yıldızlar lazım! ⚽ Şampiyonlar Ligi kadrosu böyle kurulur! 💪🔥 #GS #Transfer",
-        "{topic} haberi gundeme bomba gibi düştü! 💛❤️ Bu transfer biterse ligde dengeler tamamen değişir! 🦁🏆 #Galatasaray #Transfer"
-    ],
-    "Hakem Eleştirisi": [
-        "{topic} konusunda açık ve net söylüyorum: Galatasaray'ın hakkı yeniyor! 💛❤️ VAR odasındakiler hangi maçı izliyor? 🦁 Bu camia bu oyunlara teslim olmaz! 💥 #Galatasaray #SüperLig",
-        "{topic} hakkındaki çifte standart artık tahammül sınırını aştı! 💛❤️ Adalet istemiyoruz, eşitlik istiyoruz! ❌🔥 #Galatasaray #Cimbom",
-        "{topic} kararları silsilesi yine skandal! 💛❤️ Galatasaray doğranırken kimseden ses çıkmıyor. Bu düzen değişecek! 🦁💥 #Galatasaray"
-    ],
-    "Maç Analizi": [
-        "{topic} maçında bu taktik anlayışıyla Şampiyonlar Ligi'nde tutunamayız! 💛❤️ Sahada ön alan baskısı ve hırs şart! Galatasaray forması pasif futbolu kaldırmaz! 🦁💥 #Galatasaray",
-        "{topic} hırsla ve mücadeleyle kazanılır! 💛❤️ Sahaya karakter koyan bir Galatasaray görmek istiyoruz! ⚽🔥 #Galatasaray #SüperLig",
-        "{topic} analizinde görünen net gerçek: İkinci yarıda hırsımızı ve presimizi artırmazsak bedel öderiz! 💛❤️ #Galatasaray"
-    ],
-    "Gündem": [
-        "{topic} hakkında üretilen ucuz algı operasyonlarına taraftar olarak prim vermeyeceğiz! 💛❤️ Türkiye'nin en büyüğü Galatasaray'dır! 🦁🏆 #Galatasaray #Cimbom",
-        "{topic} gündeminde sarı-kırmızı formanın büyüklüğü sahadaki skordan bağımsızdır! 💛❤️ Armanın büyüklüğünün farkında olunmalı! 🔥💪 #Galatasaray",
-        "{topic} konuşulurken kimse Galatasaray'ın büyüklüğünü tartışmaya açamaz! 💛❤️ Açık ve net! 🦁👑 #Galatasaray"
-    ]
-}
-
-def generate_tweet_content(topic: str, category: str = "Gündem", tone: str = "Sert & Eleştirel", mode: str = "emoji") -> Dict[str, Any]:
+def generate_tweet_content(topic: str, category: str = "Gündem", tone: str = "Sert & Eleştirel", style: str = "Tartışma & Yorum Alıcı", mode: str = "emoji") -> Dict[str, Any]:
     """
-    Generates dynamic tweet content for custom topics (e.g. 'Rafael Leao', 'Osimhen', etc.).
+    Generates high-engagement viral tweets tailored specifically to the given news/topic.
     """
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     content = ""
-    clean_topic = topic.strip() if topic else "Galatasaray Gündemi"
-    
-    sys_prompt = SYSTEM_PROMPT_EMOJI if mode == "emoji" else SYSTEM_PROMPT_GRAPHIC
+    clean_topic = topic.strip() if topic else "Galatasaray Transfer Gündemi"
     
     if GEMINI_AVAILABLE and gemini_api_key:
         try:
             genai.configure(api_key=gemini_api_key)
             model = genai.GenerativeModel(
                 'gemini-1.5-flash',
-                generation_config={"temperature": 0.9} # High temperature for dynamic creative variation!
+                generation_config={"temperature": 0.85}
             )
-            prompt = sys_prompt.format(topic=clean_topic, tone=tone) + f"\n\nKonu: {clean_topic}\nKategori: {category}\nSöylem Tonu: {tone}\n\nFarklı ve özgün bir tweet oluştur."
+            prompt = VIRAL_PROMPT.format(topic=clean_topic, category=category, tone=tone, style=style)
             response = model.generate_content(prompt)
             content = response.text.strip()
         except Exception as e:
             print(f"Gemini API Error: {e}")
             content = ""
             
-    if not content:
-        # Fallback template generator with dynamic topic interpolation & random seed variation
-        templates = FALLBACK_EMOJI_TWEETS.get(category, FALLBACK_EMOJI_TWEETS["Gündem"])
-        raw_template = random.choice(templates)
-        content = raw_template.format(topic=clean_topic)
-        # Add random emoji variations if fallback
-        random_emojis = ["🔥", "🦁", "💛❤️", "⚡", "🏆", "💥"]
-        content += f" {random.choice(random_emojis)}"
+    if not content or len(content) < 15:
+        content = generate_viral_fallback(clean_topic, category, style)
         
     media_url = None
     media_type = "none"

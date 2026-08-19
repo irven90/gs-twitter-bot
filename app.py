@@ -70,7 +70,8 @@ db.init_db()
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
-st.sidebar.markdown("**@Boss_Osimhen İçerik Otomasyonu**")
+st.sidebar.markdown("**@Boss_Osimhen Viral İçerik Otomasyonu**")
+st.sidebar.caption("🎯 Amac: Yüksek Etkileşim & X Monetization")
 st.sidebar.divider()
 
 # Stats Widgets
@@ -96,20 +97,20 @@ if mock_mode:
     st.sidebar.info("ℹ️ **Simülasyon Modu Aktif**: Paylaşımlar gerçek X hesabına gönderilmez, test modunda simüle edilir.")
 
 # Header
-st.title("⚽ Galatasaray X (Twitter) İçerik Botu & Onay Paneli")
-st.caption("Gündemi takip edin, manuel oyuncu/konu girin (Örn: Rafael Leao), emojili veya görselli tweetler üretin!")
+st.title("⚽ Galatasaray X Viral İçerik Botu & Onay Paneli")
+st.caption("Gündemi takip edin, yüksek etkileşimli viral tweetler ve kompakt görsel kartlar üretin!")
 
 # Navigation Tabs
-tab_create, tab_drafts, tab_history, tab_settings = st.tabs([
+tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
     "🚀 İçerik Üret", 
     "📝 Taslak & Onay Paneli", 
     "📊 Yayınlanan Geçmiş", 
-    "⚙️ Sistem & Ayarlar"
+    "💰 X Para Kazanma Taktikleri"
 ])
 
 # Initialize Session State Topic Key
 if 'topic_box' not in st.session_state:
-    st.session_state['topic_box'] = "Rafael Leao"
+    st.session_state['topic_box'] = "Lucas Torreira transfer gelişmesi"
 
 # ---------------------------------------------------------
 # TAB 1: İÇERİK ÜRETİMİ
@@ -130,18 +131,29 @@ with tab_create:
         for idx, item in enumerate(news_items):
             with st.expander(f"📌 {item['source']}: {item['title']}"):
                 st.write(item['summary'])
-                if st.button(f"⚡ Bu Konudan Tweet Üret", key=f"news_btn_{idx}"):
+                if st.button(f"⚡ Bu Konudan Anında Tweet Üret", key=f"news_btn_{idx}"):
                     st.session_state['topic_box'] = item['title']
+                    # INSTANT GENERATION ON NEWS CLICK
+                    with st.spinner(f"'{item['title']}' hakkında viral tweet hazırlanıyor..."):
+                        generated = generate_tweet_content(
+                            topic=item['title'],
+                            category="Gündem",
+                            tone="Sert & Eleştirel",
+                            style="Tartışma & Yorum Alıcı",
+                            mode="emoji"
+                        )
+                        st.session_state['last_generated'] = generated
                     st.rerun()
                     
     with col_gen:
-        st.subheader("✏️ Özel İçerik Üretici")
+        st.subheader("✏️ Özel Viral İçerik Üretici")
         
-        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Gündem Başlığı:", key="topic_box", height=100)
+        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Gündem Başlığı:", key="topic_box", height=90)
         
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
         tone_input = c2.selectbox("Söylem Tonu:", ["Sert & Eleştirel", "Tutkulu Taraftar", "Taktik Analiz", "Mizahi & İğneleyici"])
+        style_input = c3.selectbox("Etkileşim Formatı:", ["Tartışma & Yorum Alıcı (Yüksek Yorum)", "🚨 Flaş Son Dakika (High Retweet)", "💣 Sert Algı Yıkıcı (High Like)", "📊 Rakam & Analiz"])
         
         st.markdown("### 🎯 İçerik Formatı Seçin:")
         btn_c1, btn_c2 = st.columns(2)
@@ -155,6 +167,7 @@ with tab_create:
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
+                        style=style_input,
                         mode="emoji"
                     )
                     st.session_state['last_generated'] = generated
@@ -168,19 +181,20 @@ with tab_create:
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
+                        style=style_input,
                         mode="graphic"
                     )
                     st.session_state['last_generated'] = generated
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
-            st.success(f"'{gen_data['title']}' Konusunda İçerik Başarıyla Üretildi!")
+            st.success(f"'{gen_data['title']}' Konusunda Viral Tweet Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
             st.text_area("Üretilen Metin:", value=gen_data['content'], height=120, key="preview_text")
             
             if gen_data.get('media_url') and os.path.exists(gen_data['media_url']):
-                st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=520)
+                st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=500)
                 
             b1, b2 = st.columns(2)
             if b1.button("💾 Taslaklara Kaydet"):
@@ -298,14 +312,26 @@ with tab_history:
             st.divider()
 
 # ---------------------------------------------------------
-# TAB 4: SİSTEM & AYARLAR
+# TAB 4: X MONETIZATION & PARA KAZANMA TAKTİKLERİ
 # ---------------------------------------------------------
-with tab_settings:
-    st.subheader("⚙️ Sistem Durumu ve Yapılandırma")
+with tab_monetize:
+    st.subheader("💰 X (Twitter) Etkileşim ve Para Kazanma Rehberi")
     
-    st.json({
-        "Database Status": "Aktif (SQLite)",
-        "Gemini API Status": "Aktif" if os.getenv("GEMINI_API_KEY") else "API Key Yok (Varsayılan Şablon Modu)",
-        "Twitter API Status": "Aktif" if os.getenv("X_API_KEY") else "Simülasyon / Mock Modu",
-        "Görsel Üreteci": "Kompakt GS Card Engine (@Boss_Osimhen)"
-    })
+    st.markdown("""
+    ### 🎯 X Algoritmasında Viral Olmanın ve Para Kazanmanın 4 Altın Kuralı:
+
+    #### 1. 💬 Yorum Aldıran Sorular Sorun (En Yüksek Algoritma Puanı)
+    - X algoritması için 1 Yorum = 13 Beğeni gücündedir.
+    - Tweetlerinizin sonuna mutlaka *"Katılıyor musunuz?", "Sizce ne olmalı?", "Görüşleriniz neler?"* ekleyin. `Etkileşim Formatı` menüsünden **"Tartışma & Yorum Alıcı"** seçeneğini kullanın.
+
+    #### 2. 🕒 En Yüksek Etkileşim Saatlerinde Paylaşım Yapın
+    - **Hafta İçi:** 12:00 - 13:30 (Öğle Molası) ve 20:30 - 23:00 (Akşam Yoğunluğu).
+    - **Maç Günleri:** Maç başlamadan 1 saat önce ve maç bittikten ilk 30 dakika içinde (En yüksek trafik saatidir!).
+
+    #### 3. 🔁 Retweet & Beğeni İçin "🚨 FLAŞ / SON DAKİKA" Formatı
+    - İnsanlar sıcak ve yeni gelişmeleri hemen RT eder. Sıcak haberlerde **"🚨 Flaş Son Dakika"** formatını tercih edin.
+
+    #### 4. 📈 Süreklilik ve Günlük Tweet Sayısı
+    - Günde en az **4-6 adet** kaliteli tweet atarak algoritmanın hesabınızı öne çıkarmasını sağlayın.
+    - Taslak Paneli üzerinden sabah 2, öğle 2, akşam 2 tweet onaylayarak hesabınızı aktif tutabilirsiniz.
+    """)
