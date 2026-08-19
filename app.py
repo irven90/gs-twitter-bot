@@ -61,47 +61,23 @@ if not st.session_state["authenticated"]:
                 st.error("❌ Hatalı PIN Kodu!")
     st.stop()
 
-# Safe Tweet Generation Engine with Tone-Specific Fallbacks (Zero Static Duplicates!)
-def run_tweet_engine(topic, category, tone, style, mode):
+# Safe Tweet Generation Engine
+def run_tweet_engine(topic, category, tone, style, mode, intensity=1):
     clean_t = purge_newspaper_names(topic)
     try:
-        res = generate_tweet_content(topic=clean_t, category=category, tone=tone, style=style, mode=mode)
+        res = generate_tweet_content(topic=clean_t, category=category, tone=tone, style=style, mode=mode, intensity=intensity)
         if res and res.get('content'):
             return res
     except Exception as e:
         print(f"Engine error: {e}")
         
-    # Distinct fallback content matching selected tone/style
-    if tone == "Sert & Eleştirel":
-        fallback_text = f"Yine başladılar hakem oyunlarına! {clean_t} konusundaki bu haksızlıklara karşı duracağız! 🦁🔥 #Galatasaray #GS"
-    elif tone == "Tutkulu Taraftar":
-        fallback_text = f"Armanın peşinde tek yürek! {clean_t} ne olursa olsun Hedef 25. Şampiyonluk! 💛❤️ #Galatasaray #GS"
-    elif tone == "Taktik Analiz":
-        fallback_text = f"Okan Hoca'nın saha içi taktik hamlesi mükemmel! {clean_t} sürecinde pres ve alan paylaşımı kusursuz. ⚽ #GS"
-    elif tone == "Le Marca Style (Haber & Kaynak)" or style == "Haber & Kaynak Formatı (Le Marca)":
-        fallback_text = f"🚨 {clean_t} hakkında Florya'dan sıcak bilgi ulaştı. Yönetim gelişmeleri takip ediyor.\n\n(Nevzat Dindar)"
-    elif style == "📊 X Anket Formatı":
-        fallback_text = f"📊 Sizce {clean_t} konusunda yönetim nasıl adım atmalı taraftar?\n\nA) Doğru Karar 🔥\nB) Yanlış Karar ❌\nC) Kararsızım 🤔\n\n#Galatasaray #GS"
-    elif style == "💬 Alıntı & Tepki Tweeti":
-        fallback_text = f"💬 {clean_t} haberinin neresinden tutsan elinde kalıyor valla. Şaşırdık mı? Tabii ki hayır! 🦁 #GS"
-    else:
-        fallback_text = f"Osimhen ve ekibi sahaya çıktı mı kimsede laf kalmaz! {clean_t} duyumu hakkında biz şampiyonluğa kilitlendik kardeş! 💛❤️ #Galatasaray #GS"
-
-    media_url = None
-    media_type = "none"
-    if mode == "graphic":
-        try:
-            media_url = generate_gs_card(text=fallback_text[:220], category=category)
-            media_type = "image"
-        except Exception:
-            pass
-            
+    fallback_text = f"Osimhen ve ekibi sahada cevabı verir! {clean_t} konusunda biz şampiyonluğa kilitlendik! 💛❤️ #Galatasaray #GS"
     return {
         "title": clean_t[:50],
         "content": fallback_text,
         "category": category,
-        "media_type": media_type,
-        "media_url": media_url
+        "media_type": "none",
+        "media_url": None
     }
 
 # Custom Styling (Galatasaray Red & Gold Yellow theme)
@@ -146,6 +122,8 @@ default_topic = news_items[0]['title'] if news_items else "🚨 Mauro Icardi tra
 # Initialize Session State Variables
 if 'topic_box' not in st.session_state:
     st.session_state['topic_box'] = default_topic
+if 'intensity_val' not in st.session_state:
+    st.session_state['intensity_val'] = 1
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
@@ -210,7 +188,8 @@ with tab_create:
                         category="Transfer",
                         tone="Organik Taraftar Ağzı (@Boss_Osimhen)",
                         style="Tartışma & Yorum Alıcı",
-                        mode="emoji"
+                        mode="emoji",
+                        intensity=st.session_state.get('intensity_val', 1)
                     )
                     st.session_state['last_generated'] = gen
                     st.session_state['preview_text'] = gen['content']
@@ -221,7 +200,7 @@ with tab_create:
         
         topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", key="topic_box", height=90)
         
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
         tone_input = c2.selectbox("Söylem Tonu:", [
             "Organik Taraftar Ağzı (@Boss_Osimhen)", 
@@ -236,6 +215,14 @@ with tab_create:
             "📊 X Anket Formatı",
             "🚨 Flaş Son Dakika"
         ])
+        intensity_input = c4.selectbox("🌶️ Sertlik Düzeyi:", [
+            "1 - Normal Taraftar",
+            "2 - Sert & Eleştirel",
+            "3 - Aşırı Sert / Damar"
+        ])
+        
+        intensity_num = 3 if "3" in intensity_input else (2 if "2" in intensity_input else 1)
+        st.session_state['intensity_val'] = intensity_num
         
         st.markdown("### 🎯 İçerik Formatı Seçin:")
         btn_c1, btn_c2 = st.columns(2)
@@ -250,7 +237,8 @@ with tab_create:
                         category=category_input,
                         tone=tone_input,
                         style=style_input,
-                        mode="emoji"
+                        mode="emoji",
+                        intensity=intensity_num
                     )
                     st.session_state['last_generated'] = gen
                     st.session_state['preview_text'] = gen['content']
@@ -266,7 +254,8 @@ with tab_create:
                         category=category_input,
                         tone=tone_input,
                         style=style_input,
-                        mode="graphic"
+                        mode="graphic",
+                        intensity=intensity_num
                     )
                     st.session_state['last_generated'] = gen
                     st.session_state['preview_text'] = gen['content']
@@ -276,10 +265,25 @@ with tab_create:
             gen_data = st.session_state['last_generated']
             st.session_state['preview_text'] = gen_data['content']
             
-            st.success(f"'{gen_data['title']}' Konusunda ({tone_input}) Tweeti Üretildi!")
+            st.success(f"'{gen_data['title']}' Konusunda ({tone_input} - Sertlik: {intensity_num}) Tweeti Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
             st.text_area("Üretilen Metin:", key="preview_text", height=130)
+            
+            if st.button("🔄 Beğenmedim, Daha Sert / Farklı Üret!", use_container_width=True):
+                new_intensity = min(3, intensity_num + 1)
+                with st.spinner("Daha sert ve farklı bir tweet üretiliyor..."):
+                    gen = run_tweet_engine(
+                        topic=topic_input,
+                        category=category_input,
+                        tone=tone_input,
+                        style=style_input,
+                        mode=gen_data.get('media_type', 'emoji'),
+                        intensity=new_intensity
+                    )
+                    st.session_state['last_generated'] = gen
+                    st.session_state['preview_text'] = gen['content']
+                    st.rerun()
             
             if gen_data.get('media_url') and os.path.exists(gen_data['media_url']):
                 st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=500)
