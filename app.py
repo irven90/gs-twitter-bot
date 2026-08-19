@@ -89,7 +89,7 @@ if mock_mode:
 
 # Header
 st.title("⚽ Galatasaray X (Twitter) İçerik Botu & Onay Paneli")
-st.caption("Gündemi takip edin, Emojili Metin veya Grafik Görselli tweetler üretin, kontrol edip paylaşın!")
+st.caption("Gündemi takip edin, manuel oyuncu/konu girin (Örn: Rafael Leao), emojili veya görselli tweetler üretin!")
 
 # Navigation Tabs
 tab_create, tab_drafts, tab_history, tab_settings = st.tabs([
@@ -115,57 +115,61 @@ with tab_create:
         with st.spinner("Son futbol haberleri çekiliyor..."):
             news_items = fetch_latest_football_news()
             
-        selected_news_title = None
         for idx, item in enumerate(news_items):
             with st.expander(f"📌 {item['source']}: {item['title']}"):
                 st.write(item['summary'])
                 if st.button(f"⚡ Bu Konudan Tweet Üret", key=f"news_btn_{idx}"):
-                    selected_news_title = item['title']
                     st.session_state['selected_topic'] = item['title']
                     st.rerun()
                     
     with col_gen:
         st.subheader("✏️ Özel İçerik Üretici")
         
-        default_topic = st.session_state.get('selected_topic', "Hakem kararları ve Galatasaray'ın şampiyonluk yarışı")
-        topic_input = st.text_area("İçerik Konusu / Gündem Başlığı:", value=default_topic, height=100)
+        default_topic = st.session_state.get('selected_topic', "Rafael Leao")
+        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Gündem Başlığı:", value=default_topic, height=100)
         
         c1, c2 = st.columns(2)
-        category_input = c1.selectbox("Kategori:", ["Hakem Eleştirisi", "Transfer", "Maç Analizi", "Gündem", "Genel"])
+        category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
         tone_input = c2.selectbox("Söylem Tonu:", ["Sert & Eleştirel", "Tutkulu Taraftar", "Taktik Analiz", "Mizahi & İğneleyici"])
         
         st.markdown("### 🎯 İçerik Formatı Seçin:")
         btn_c1, btn_c2 = st.columns(2)
         
-        generate_mode = None
         if btn_c1.button("🔥 Emojili Metin Tweeti Üret (Görselsiz)", use_container_width=True):
-            generate_mode = "emoji"
-            
-        if btn_c2.button("🎨 Görselli Grafik Tweeti Üret", use_container_width=True):
-            generate_mode = "graphic"
-            
-        if generate_mode:
             if not topic_input.strip():
-                st.warning("Lütfen bir konu başlığı girin.")
+                st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
-                with st.spinner("İçerik hazırlanıyor..."):
+                with st.spinner(f"'{topic_input}' hakkında emojili tweet üretiliyor..."):
                     generated = generate_tweet_content(
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
-                        mode=generate_mode
+                        mode="emoji"
+                    )
+                    st.session_state['last_generated'] = generated
+
+        if btn_c2.button("🎨 Görselli Grafik Tweeti Üret", use_container_width=True):
+            if not topic_input.strip():
+                st.warning("Lütfen bir konu veya oyuncu ismi girin.")
+            else:
+                with st.spinner(f"'{topic_input}' hakkında görselli tweet üretiliyor..."):
+                    generated = generate_tweet_content(
+                        topic=topic_input,
+                        category=category_input,
+                        tone=tone_input,
+                        mode="graphic"
                     )
                     st.session_state['last_generated'] = generated
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
-            st.success("İçerik Başarıyla Üretildi!")
+            st.success(f"'{gen_data['title']}' Konusunda İçerik Başarıyla Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
             st.text_area("Üretilen Metin:", value=gen_data['content'], height=120, key="preview_text")
             
             if gen_data.get('media_url') and os.path.exists(gen_data['media_url']):
-                st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=550)
+                st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=520)
                 
             b1, b2 = st.columns(2)
             if b1.button("💾 Taslaklara Kaydet"):
