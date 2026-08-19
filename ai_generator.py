@@ -50,33 +50,16 @@ HUMAN_FALLBACKS = {
     ]
 }
 
-def generate_tweet_content(
-    topic: str = "Galatasaray Transfer Gündemi",
-    category: str = "Gündem",
-    tone: str = "Organik Taraftar Ağzı (Doğal & Samimi)",
-    style: str = "Tartışma & Yorum Alıcı (Yüksek Yorum)",
-    mode: str = "emoji",
-    *args,
-    **kwargs
-) -> Dict[str, Any]:
+def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
     """
     Bulletproof tweet content generator accepting positional OR keyword arguments safely.
     """
     # Overwrite if passed in kwargs or args
-    if "topic" in kwargs: topic = kwargs["topic"]
-    elif len(args) > 0: topic = args[0]
-    
-    if "category" in kwargs: category = kwargs["category"]
-    elif len(args) > 1: category = args[1]
-    
-    if "tone" in kwargs: tone = kwargs["tone"]
-    elif len(args) > 2: tone = args[2]
-    
-    if "style" in kwargs: style = kwargs["style"]
-    elif len(args) > 3: style = args[3]
-    
-    if "mode" in kwargs: mode = kwargs["mode"]
-    elif len(args) > 4: mode = args[4]
+    topic = kwargs.get("topic") if "topic" in kwargs else (args[0] if len(args) > 0 else "Galatasaray Transfer Gündemi")
+    category = kwargs.get("category") if "category" in kwargs else (args[1] if len(args) > 1 else "Gündem")
+    tone = kwargs.get("tone") if "tone" in kwargs else (args[2] if len(args) > 2 else "Organik Taraftar Ağzı (Doğal & Samimi)")
+    style = kwargs.get("style") if "style" in kwargs else (args[3] if len(args) > 3 else "Tartışma & Yorum Alıcı (Yüksek Yorum)")
+    mode = kwargs.get("mode") if "mode" in kwargs else (args[4] if len(args) > 4 else "emoji")
     
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     content = ""

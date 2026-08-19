@@ -3,10 +3,10 @@ import re
 import random
 from typing import List, Dict
 
-# 100% Pure X (Twitter) Football Reporter & Insider Topics (No Newspaper Names!)
+# Pure X Football Reporter & Insider Hardcoded Topics
 X_INSIDER_TOPICS = [
     {
-        "title": "🚨 X DUYUM | Galatasaray Orta Saha Transferinde Sıcak Temas!",
+        "title": "🚨 X DUYUM | Galatasaray Orta Saha Transferinde Son Aşamaya Geldi!",
         "summary": "X transfer duyumcularının özel haberine göre yönetim masadaki yıldız isimle 3 yıllık anlaşma sağladı.",
         "source": "🚨 X Transfer Duyumcuları"
     },
@@ -29,25 +29,25 @@ X_INSIDER_TOPICS = [
         "title": "⚡ GS MUHABİRİ | Lucas Torreira ve Barış Alper İçin Teklifler Reddedildi!",
         "summary": "GS muhabirlerinin aktardığı bilgiye göre yönetim ana kadroyu koruma kararı aldı.",
         "source": "⚡ GS Futbol Muhabirleri"
-    },
-    {
-        "title": "🔥 X TREND | Süper Lig Şampiyonluk Yarışında Oranlar Güncellendi!",
-        "summary": "Galatasaray'ın son galibiyet serisi sonrası X futbol analistleri taktik yorumları paylaştı.",
-        "source": "🔥 X Twitter Canlı Trendler"
     }
 ]
 
-NEWSPAPER_PATTERNS = [
-    r'\s*-\s*Fotomaç.*$', r'\s*-\s*Sözcü.*$', r'\s*-\s*Haber\s*7.*$', r'\s*-\s*Milliyet.*$',
-    r'\s*-\s*Mynet.*$', r'\s*-\s*A\s*Spor.*$', r'\s*-\s*Fanatik.*$', r'\s*-\s*Hurriyet.*$',
-    r'\s*-\s*TRT\s*Spor.*$', r'\s*-\s*Sabah.*$', r'\s*-\s*NTV\s*Spor.*$', r'Google News.*'
-]
-
-def clean_title_for_x_insiders(raw_title: str) -> str:
-    title = raw_title
-    for pattern in NEWSPAPER_PATTERNS:
-        title = re.sub(pattern, '', title, flags=re.IGNORECASE)
-    return title.strip()
+def sanitize_news_title(raw_title: str) -> str:
+    """Rigorous sanitizer stripping ALL newspaper names and Google News prefixes."""
+    title = str(raw_title)
+    
+    # Strip Google News prefix
+    title = re.sub(r'^Google News.*?:', '', title, flags=re.IGNORECASE)
+    title = re.sub(r'^\s*\(.*?\):\s*', '', title)
+    
+    # Strip newspaper suffixes (- Fotomaç, - Sözcü, - Milliyet, etc.)
+    title = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', title, flags=re.IGNORECASE)
+    
+    clean_t = title.strip()
+    if not clean_t.startswith("🚨") and not clean_t.startswith("⚡") and not clean_t.startswith("🔥") and not clean_t.startswith("💣"):
+        clean_t = f"🚨 X DUYUM | {clean_t}"
+        
+    return clean_t
 
 def clean_html(raw_html: str) -> str:
     cleanr = re.compile('<.*?>')
@@ -65,19 +65,18 @@ def fetch_latest_football_news() -> List[Dict[str, str]]:
         parsed = feedparser.parse(feed_url)
         for entry in parsed.entries[:4]:
             raw_title = entry.get("title", "")
-            clean_title = clean_title_for_x_insiders(raw_title)
+            clean_title = sanitize_news_title(raw_title)
             summary = clean_html(entry.get("summary", entry.get("description", "")))
             
             if clean_title and len(clean_title) > 10:
                 articles.append({
-                    "title": f"🚨 X DUYUM | {clean_title}",
+                    "title": clean_title,
                     "summary": summary[:160] + "..." if len(summary) > 160 else summary,
                     "source": "🚨 X Transfer Duyumcuları",
                     "link": "#"
                 })
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error fetching news: {e}")
         
-    # Combine live cleaned items with insider topics
     final_list = X_INSIDER_TOPICS + articles
     return final_list[:6]

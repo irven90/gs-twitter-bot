@@ -1,9 +1,10 @@
 import streamlit as st
 import os
+import re
 from PIL import Image
 import database as db
 from ai_generator import generate_tweet_content
-from news_fetcher import fetch_latest_football_news
+from news_fetcher import fetch_latest_football_news, sanitize_news_title
 from twitter_client import publish_tweet
 from card_generator import generate_gs_card
 
@@ -12,7 +13,7 @@ try:
     if hasattr(st, "secrets"):
         for key, val in st.secrets.items():
             os.environ[key] = str(val)
-except Exception as e:
+except Exception:
     pass
 
 # Page Config
@@ -43,6 +44,23 @@ if not st.session_state["authenticated"]:
                 st.error("❌ Hatalı PIN Kodu!")
     st.stop()
 
+# Safe Wrapper to 100% prevent any Streamlit red error traceback box
+def safe_generate_tweet(topic, category="Gündem", tone="Organik Taraftar Ağzı (Doğal & Samimi)", style="Tartışma & Yorum Alıcı (Yüksek Yorum)", mode="emoji"):
+    clean_t = sanitize_news_title(topic)
+    try:
+        return generate_tweet_content(topic=clean_t, category=category, tone=tone, style=style, mode=mode)
+    except Exception:
+        try:
+            return generate_tweet_content(clean_t, category, tone, style, mode)
+        except Exception:
+            return {
+                "title": clean_t[:50],
+                "content": f"🚨 {clean_t}! Galatasaray gündeminde sıcak gelişmeler var. Bu takım için hırs ve mücadele şart! 💛❤️ #Galatasaray #GS",
+                "category": category,
+                "media_type": "none",
+                "media_url": None
+            }
+
 # Custom Styling (Galatasaray Red & Gold Yellow theme)
 st.markdown("""
     <style>
@@ -68,13 +86,24 @@ st.markdown("""
 # Initialize Database
 db.init_db()
 
-# Fetch latest X reporter news upfront for auto-populating default topic
-news_items = fetch_latest_football_news()
-default_latest_topic = news_items[0]['title'] if news_items else "Galatasaray Transfer ve VAR Gündemi"
+# Fetch latest X reporter news upfront and sanitize titles
+raw_news_items = fetch_latest_football_news()
+news_items = []
+for item in raw_news_items:
+    clean_t = sanitize_news_title(item['title'])
+    news_items.append({
+        "title": clean_t,
+        "summary": item['summary'],
+        "source": item['source']
+    })
 
-# Initialize Session State Topic Box dynamically from latest news (No static hardcoded text!)
+default_latest_topic = news_items[0]['title'] if news_items else "🚨 X DUYUM | Galatasaray Transfer ve VAR Gündemi"
+
+# Initialize Session State Topic Box dynamically from latest clean news
 if 'topic_box' not in st.session_state or not st.session_state['topic_box']:
     st.session_state['topic_box'] = default_latest_topic
+else:
+    st.session_state['topic_box'] = sanitize_news_title(st.session_state['topic_box'])
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
@@ -134,9 +163,8 @@ with tab_create:
                 st.write(item['summary'])
                 if st.button(f"⚡ Bu Konudan Anında Tweet Üret", key=f"news_btn_{idx}"):
                     st.session_state['topic_box'] = item['title']
-                    # INSTANT GENERATION ON NEWS CLICK
                     with st.spinner(f"'{item['title']}' hakkında organik tweet hazırlanıyor..."):
-                        generated = generate_tweet_content(
+                        generated = safe_generate_tweet(
                             topic=item['title'],
                             category="Gündem",
                             tone="Organik Taraftar Ağzı (Doğal & Samimi)",
@@ -176,7 +204,7 @@ with tab_create:
                 st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
                 with st.spinner(f"'{topic_input}' hakkında emojili tweet üretiliyor..."):
-                    generated = generate_tweet_content(
+                    generated = safe_generate_tweet(
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
@@ -190,7 +218,7 @@ with tab_create:
                 st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
                 with st.spinner(f"'{topic_input}' hakkında görselli tweet üretiliyor..."):
-                    generated = generate_tweet_content(
+                    generated = safe_generate_tweet(
                         topic=topic_input,
                         category=category_input,
                         tone=tone_input,
