@@ -3,10 +3,26 @@ import os
 import re
 from PIL import Image
 import database as db
+import news_fetcher
 from ai_generator import generate_tweet_content
-from news_fetcher import fetch_latest_football_news, sanitize_news_title
 from twitter_client import publish_tweet
 from card_generator import generate_gs_card
+
+# Safely import or define sanitize_news_title to 100% prevent ImportError on Streamlit Cloud
+fetch_latest_football_news = news_fetcher.fetch_latest_football_news
+
+if hasattr(news_fetcher, "sanitize_news_title"):
+    sanitize_news_title = news_fetcher.sanitize_news_title
+else:
+    def sanitize_news_title(raw_title: str) -> str:
+        title = str(raw_title)
+        title = re.sub(r'^Google News.*?:', '', title, flags=re.IGNORECASE)
+        title = re.sub(r'^\s*\(.*?\):\s*', '', title)
+        title = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', title, flags=re.IGNORECASE)
+        clean_t = title.strip()
+        if not clean_t.startswith("🚨") and not clean_t.startswith("⚡") and not clean_t.startswith("🔥") and not clean_t.startswith("💣"):
+            clean_t = f"🚨 X DUYUM | {clean_t}"
+        return clean_t
 
 # Sync Streamlit Secrets to os.environ so Gemini & X API work 100% on Streamlit Cloud!
 try:
