@@ -40,10 +40,10 @@ INTROS_SERT = [
 ]
 
 INTROS_ASIRI_SERT = [
-    "Ulan yeter artık be! TFF ve hakemler şov yapmayı bıraksın!",
-    "Galatasaray'ın önünü masada kesebileceğinizi mi sanıyorsunuz ulan?!",
+    "Yeter artık be! TFF ve hakemler şov yapmayı bıraksın!",
+    "Galatasaray'ın önünü masada kesebileceğinizi mi sanıyorsunuz?!",
     "Söz konusu Galatasaray olunca hepiniz birleşiyorsunuz ama alayınızı devireceğiz!",
-    "Şu çirkin oyunları görünce damarlarım atıyor ulan! Bize sökmez bu işler!"
+    "Şu çirkin oyunları görünce damarlarım atıyor! Bize sökmez bu işler!"
 ]
 
 # Dynamic Outros (20+ variations)
@@ -110,7 +110,7 @@ Söylem Tonu: "{tone}"
 Sertlik / Şiddet Düzeyi: {intensity} / 3 (Eğer 3 ise çok sert, damar, hakemlere/rakiplere tavizsiz tepki ver!)
 
 KURALLAR:
-1. KESİNLİKLE "Abi valla [konu] konusunu görünce gülüyorum" veya "Osimhen ve ekibi sahaya çıktı mı" ŞABLONLARINI KULLANMA!
+1. KESİNLİKLE SABİT ŞABLON VEYA TEKRAR EDEN İFADELER KULLANMA!
 2. Konuyu tamamen özgün kelimelerinle yorumla.
 3. Sertlik seviyesi {intensity} ise buna uygun hırslı, samimi, övüşü ve sertliği yerinde cümleler kur.
 4. Sonuna 1-2 doğal taraftar hashtag'i ekle (#Galatasaray #GS).
@@ -122,10 +122,11 @@ KURALLAR:
             genai.configure(api_key=gemini_key)
             model = genai.GenerativeModel(
                 'gemini-1.5-flash',
-                generation_config={"temperature": 0.98}
+                generation_config={"temperature": 0.99}
             )
             response = model.generate_content(prompt)
-            content = response.text.strip()
+            if response and hasattr(response, "text") and response.text:
+                content = response.text.strip()
         except Exception as e:
             print(f"Gemini API Execution Error: {e}")
             content = ""

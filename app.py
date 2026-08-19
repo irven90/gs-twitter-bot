@@ -5,7 +5,7 @@ import random
 from PIL import Image
 import database as db
 import news_fetcher
-from ai_generator import generate_tweet_content
+from ai_generator import generate_tweet_content, generate_procedural_tweet
 from twitter_client import publish_tweet
 from card_generator import generate_gs_card
 
@@ -61,7 +61,7 @@ if not st.session_state["authenticated"]:
                 st.error("❌ Hatalı PIN Kodu!")
     st.stop()
 
-# Safe Tweet Generation Engine
+# Safe Tweet Generation Engine with Dynamic Procedural Combinator (Zero Hardcoded String Repeats!)
 def run_tweet_engine(topic, category, tone, style, mode, intensity=1):
     clean_t = purge_newspaper_names(topic)
     try:
@@ -71,13 +71,22 @@ def run_tweet_engine(topic, category, tone, style, mode, intensity=1):
     except Exception as e:
         print(f"Engine error: {e}")
         
-    fallback_text = f"Osimhen ve ekibi sahada cevabı verir! {clean_t} konusunda biz şampiyonluğa kilitlendik! 💛❤️ #Galatasaray #GS"
+    fallback_text = generate_procedural_tweet(clean_t, tone, intensity)
+    media_url = None
+    media_type = "none"
+    if mode == "graphic":
+        try:
+            media_url = generate_gs_card(text=fallback_text[:220], category=category)
+            media_type = "image"
+        except Exception:
+            pass
+            
     return {
         "title": clean_t[:50],
         "content": fallback_text,
         "category": category,
-        "media_type": "none",
-        "media_url": None
+        "media_type": media_type,
+        "media_url": media_url
     }
 
 # Custom Styling (Galatasaray Red & Gold Yellow theme)
@@ -192,7 +201,6 @@ with tab_create:
                         intensity=st.session_state.get('intensity_val', 1)
                     )
                     st.session_state['last_generated'] = gen
-                    st.session_state['preview_text'] = gen['content']
                     st.rerun()
                     
     with col_gen:
@@ -241,7 +249,6 @@ with tab_create:
                         intensity=intensity_num
                     )
                     st.session_state['last_generated'] = gen
-                    st.session_state['preview_text'] = gen['content']
                     st.rerun()
 
         if btn_c2.button("🎨 Görselli Grafik Tweeti Üret", use_container_width=True):
@@ -258,17 +265,15 @@ with tab_create:
                         intensity=intensity_num
                     )
                     st.session_state['last_generated'] = gen
-                    st.session_state['preview_text'] = gen['content']
                     st.rerun()
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
-            st.session_state['preview_text'] = gen_data['content']
             
             st.success(f"'{gen_data['title']}' Konusunda ({tone_input} - Sertlik: {intensity_num}) Tweeti Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
-            st.text_area("Üretilen Metin:", key="preview_text", height=130)
+            st.text_area("Üretilen Metin:", value=gen_data['content'], height=130)
             
             if st.button("🔄 Beğenmedim, Daha Sert / Farklı Üret!", use_container_width=True):
                 new_intensity = min(3, intensity_num + 1)
@@ -282,7 +287,6 @@ with tab_create:
                         intensity=new_intensity
                     )
                     st.session_state['last_generated'] = gen
-                    st.session_state['preview_text'] = gen['content']
                     st.rerun()
             
             if gen_data.get('media_url') and os.path.exists(gen_data['media_url']):
@@ -299,8 +303,6 @@ with tab_create:
                 )
                 st.success(f"Taslak kaydedildi! (ID: #{draft_id})")
                 del st.session_state['last_generated']
-                if 'preview_text' in st.session_state:
-                    del st.session_state['preview_text']
                 st.rerun()
                 
             if b2.button("🚀 Anında Paylaş", use_container_width=True):
@@ -316,8 +318,6 @@ with tab_create:
                     st.balloons()
                     st.success(f"Paylaşıldı! (İşlem Kodu: {tweet_res})")
                     del st.session_state['last_generated']
-                    if 'preview_text' in st.session_state:
-                        del st.session_state['preview_text']
                     st.rerun()
                 else:
                     st.error(tweet_res)
