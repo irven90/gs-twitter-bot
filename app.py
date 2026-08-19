@@ -7,6 +7,14 @@ from news_fetcher import fetch_latest_football_news
 from twitter_client import publish_tweet
 from card_generator import generate_gs_card
 
+# Sync Streamlit Secrets to os.environ so Gemini & X API work 100% on Streamlit Cloud!
+try:
+    if hasattr(st, "secrets"):
+        for key, val in st.secrets.items():
+            os.environ[key] = str(val)
+except Exception as e:
+    pass
+
 # Page Config
 st.set_page_config(
     page_title="Galatasaray X İçerik Botu & Onay Paneli",
@@ -15,7 +23,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# PIN Güvenlik Kontrolü (Bulut / Mobil Kullanım İçin)
+# PIN Güvenlik Kontrolü
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
@@ -99,6 +107,10 @@ tab_create, tab_drafts, tab_history, tab_settings = st.tabs([
     "⚙️ Sistem & Ayarlar"
 ])
 
+# Initialize Session State Topic Key
+if 'topic_box' not in st.session_state:
+    st.session_state['topic_box'] = "Rafael Leao"
+
 # ---------------------------------------------------------
 # TAB 1: İÇERİK ÜRETİMİ
 # ---------------------------------------------------------
@@ -119,14 +131,13 @@ with tab_create:
             with st.expander(f"📌 {item['source']}: {item['title']}"):
                 st.write(item['summary'])
                 if st.button(f"⚡ Bu Konudan Tweet Üret", key=f"news_btn_{idx}"):
-                    st.session_state['selected_topic'] = item['title']
+                    st.session_state['topic_box'] = item['title']
                     st.rerun()
                     
     with col_gen:
         st.subheader("✏️ Özel İçerik Üretici")
         
-        default_topic = st.session_state.get('selected_topic', "Rafael Leao")
-        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Gündem Başlığı:", value=default_topic, height=100)
+        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Gündem Başlığı:", key="topic_box", height=100)
         
         c1, c2 = st.columns(2)
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])

@@ -20,7 +20,6 @@ def load_custom_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
         except Exception as e:
             print(f"Font load error: {e}")
             
-    # System fallbacks if local files missing
     system_paths = [
         "C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -33,9 +32,13 @@ def load_custom_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
                 pass
     return ImageFont.load_default()
 
-def strip_emojis(text: str) -> str:
-    """Removes unsupported emoji icons from image text to avoid square glyphs."""
-    return re.sub(r'[\U00010000-\U0010ffff\u2600-\u26FF\u2700-\u27BF]', '', text).strip()
+def clean_text_for_card(text: str) -> str:
+    """Strips emojis AND hashtags from the text so graphic card contains ONLY pure text statements."""
+    # Strip emojis
+    text_no_emoji = re.sub(r'[\U00010000-\U0010ffff\u2600-\u26FF\u2700-\u27BF]', '', text)
+    # Strip hashtags (#Hashtag)
+    text_no_hashtag = re.sub(r'#\w+', '', text_no_emoji)
+    return text_no_hashtag.strip()
 
 DYNAMIC_BADGES = ["SON DAKİKA", "GÜNDEM", "FLAŞ HABER", "TARAFTAR SESİ", "MAÇ ANALİZİ", "TRANSFER GÜNDEMİ"]
 
@@ -80,19 +83,16 @@ THEMES = [
 
 def generate_gs_card(text: str, category: str = None, title: str = None) -> str:
     """
-    Generates a compact, highly professional 800x380 graphic card (size reduced by >50%).
-    Left Top: Dynamic Badge (SON DAKİKA / GÜNDEM)
-    Left Bottom: Empty
-    Right Bottom: @Boss_Osimhen
+    Generates a compact 800x380 graphic card.
+    Strips hashtags and emojis so card contains ONLY clean statements.
+    Bottom Right: @Boss_Osimhen
     """
     width, height = 800, 380
-    clean_text = strip_emojis(text)
+    clean_text = clean_text_for_card(text)
     
-    # Pick random badge if not provided
     badge_label = category.upper() if category else random.choice(DYNAMIC_BADGES)
     theme = random.choice(THEMES)
     
-    # Create Image & Smooth Background Gradient
     img = Image.new("RGBA", (width, height), color=(15, 15, 20, 255))
     draw = ImageDraw.Draw(img)
     
@@ -105,11 +105,10 @@ def generate_gs_card(text: str, category: str = None, title: str = None) -> str:
         b = int(t_top[2] * (1 - ratio) + t_bot[2] * ratio)
         draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
         
-    # Accent Borders Top & Bottom
     draw.rectangle([0, 0, width, 8], fill=theme["accent"])
     draw.rectangle([0, height - 8, width, height], fill=theme["accent"])
     
-    # Sol Üst: Badge Pill (SON DAKİKA / GÜNDEM)
+    # Sol Üst: Badge Pill
     badge_font = load_custom_font(18, bold=True)
     badge_text = f"  {badge_label}  "
     bbox = badge_font.getbbox(badge_text)
@@ -119,37 +118,35 @@ def generate_gs_card(text: str, category: str = None, title: str = None) -> str:
     draw.rectangle([35, 25, 35 + b_width, 25 + b_height], fill=theme["badge_bg"])
     draw.text((45, 32), badge_label, fill=theme["badge_fg"], font=badge_font)
     
-    # Center Card Box Container
+    # Center Container Box
     card_x1, card_y1 = 35, 75
     card_x2, card_y2 = width - 35, height - 55
     
     draw.rectangle([card_x1, card_y1, card_x2, card_y2], fill=(15, 18, 25, 220), outline=theme["border_color"], width=2)
     draw.rectangle([card_x1, card_y1, card_x1 + 6, card_y2], fill=theme["accent"])
     
-    # Dynamic Text Sizing & Wrap
+    # Dynamic Text Wrap
     char_len = len(clean_text)
     if char_len < 100:
-        font_size = 24
+        font_size = 23
         wrap_w = 48
     elif char_len < 180:
-        font_size = 20
+        font_size = 19
         wrap_w = 58
     else:
-        font_size = 17
+        font_size = 16
         wrap_w = 66
         
     main_font = load_custom_font(font_size, bold=True)
     wrapped_lines = textwrap.wrap(clean_text, width=wrap_w)
     wrapped_text = "\n".join(wrapped_lines)
     
-    # Draw Main Quote Text inside Container Box
     draw.multiline_text((card_x1 + 25, card_y1 + 20), f"“{wrapped_text}”", fill=theme["text_color"], font=main_font, spacing=8)
     
-    # Bottom Right Footer: @Boss_Osimhen (Sol alt boş, sağ altta Boss_Osimhen)
+    # Sağ Alt: @Boss_Osimhen
     footer_font = load_custom_font(18, bold=True)
     draw.text((width - 200, height - 42), "@Boss_Osimhen", fill=theme["accent"], font=footer_font)
     
-    # Save Output PNG
     final_img = Image.new("RGB", (width, height), (15, 15, 20))
     final_img.paste(img, mask=img.split()[3])
     
