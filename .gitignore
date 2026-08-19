@@ -1,0 +1,16 @@
+# Database & Local Assets
+*.db
+*.sqlite3
+assets/generated_cards/*.png
+
+# Environment & Credentials
+.env
+*.key
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
