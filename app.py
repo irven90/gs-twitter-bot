@@ -61,7 +61,7 @@ if not st.session_state["authenticated"]:
     st.stop()
 
 # Safe Wrapper to 100% prevent any Streamlit red error traceback box
-def safe_generate_tweet(topic, category="Gündem", tone="Le Marca Style", style="Haber Formatı", mode="emoji"):
+def safe_generate_tweet(topic, category="Gündem", tone="Organik Taraftar Ağzı (Doğal & Samimi)", style="Tartışma & Yorum Alıcı (Yüksek Yorum)", mode="emoji"):
     clean_t = purge_newspaper_names(topic)
     try:
         return generate_tweet_content(topic=clean_t, category=category, tone=tone, style=style, mode=mode)
@@ -71,7 +71,7 @@ def safe_generate_tweet(topic, category="Gündem", tone="Le Marca Style", style=
         except Exception:
             return {
                 "title": clean_t[:50],
-                "content": f"🚨 {clean_t}.\n\n(Nevzat Dindar)",
+                "content": f"Abi valla {clean_t} konusunda söyleyecek çok şey var! Galatasaray bu ligin tek büyüğüdür kardeş net! 💛❤️ #Galatasaray #GS",
                 "category": category,
                 "media_type": "none",
                 "media_url": None
@@ -124,8 +124,8 @@ else:
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
-st.sidebar.markdown("**@Boss_Osimhen Le Marca Style Otomasyonu**")
-st.sidebar.caption("🎯 Le Marca & Fabrizio Romano Formatında Tweetler")
+st.sidebar.markdown("**@Boss_Osimhen Organik Otomasyonu**")
+st.sidebar.caption("🎯 @Boss_Osimhen Taraftar Personası & Viral Akış")
 st.sidebar.divider()
 
 # Stats Widgets
@@ -151,8 +151,8 @@ if mock_mode:
     st.sidebar.info("ℹ️ **Simülasyon Modu Aktif**: Paylaşımlar gerçek X hesabına gönderilmez, test modunda simüle edilir.")
 
 # Header
-st.title("⚽ Galatasaray X Le Marca Style İçerik Botu")
-st.caption("Le Marca Sports ve Fabrizio Romano formatında profesyonel futbol duyumları ve tweetler üretin!")
+st.title("⚽ Galatasaray X @Boss_Osimhen Taraftar Botu")
+st.caption("Kahve ve stadyum sohbeti sıcaklığında organik tweetler üretin, taslak onay paneliyle yayınlayın!")
 
 # Navigation Tabs
 tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
@@ -169,8 +169,8 @@ def trigger_news_tweet(topic_title):
     generated = safe_generate_tweet(
         topic=clean_title,
         category="Transfer",
-        tone="Le Marca Style",
-        style="Haber Formatı",
+        tone="Organik Taraftar Ağzı (Doğal & Samimi)",
+        style="Tartışma & Yorum Alıcı (Yüksek Yorum)",
         mode="emoji"
     )
     st.session_state['last_generated'] = generated
@@ -182,8 +182,8 @@ with tab_create:
     col_news, col_gen = st.columns([1, 1])
     
     with col_news:
-        st.subheader("🚨 Le Marca Style X Duyum Akışı")
-        st.caption("Aşağıdaki sıcak futbol duyumlarına tıklayarak anında Le Marca tarzı tweet üretebilirsiniz.")
+        st.subheader("🚨 X Duyumcu & Futbol Akışı")
+        st.caption("Aşağıdaki sıcak futbol gündemlerine tıklayarak anında @Boss_Osimhen taraftar ağzıyla tweet üretebilirsiniz.")
         
         if st.button("🔄 Gündemi Yenile"):
             st.rerun()
@@ -199,24 +199,24 @@ with tab_create:
                 )
                     
     with col_gen:
-        st.subheader("✏️ Le Marca Style Tweet Üretici")
+        st.subheader("✏️ @Boss_Osimhen Taraftar Tweet Üretici")
         
         topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", key="topic_box", height=90)
         
         c1, c2, c3 = st.columns(3)
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
         tone_input = c2.selectbox("Söylem Tonu:", [
-            "Le Marca Style (Profesyonel Muhabir)", 
             "Organik Taraftar Ağzı (Doğal & Samimi)", 
+            "Le Marca Style (Profesyonel Muhabir)", 
             "Sert & Eleştirel", 
             "Tutkulu Taraftar", 
             "Taktik Analiz"
         ])
         style_input = c3.selectbox("Etkileşim Formatı:", [
-            "Haber & Kaynak Formatı (Le Marca)", 
-            "Tartışma & Yorum Alıcı", 
+            "Tartışma & Yorum Alıcı (Yüksek Yorum)", 
             "💬 Alıntı & Tepki Tweeti",
             "📊 X Anket Formatı",
+            "Haber & Kaynak Formatı (Le Marca)", 
             "🚨 Flaş Son Dakika"
         ])
         
@@ -227,7 +227,7 @@ with tab_create:
             if not topic_input.strip():
                 st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
-                with st.spinner(f"'{topic_input}' hakkında tweet üretiliyor..."):
+                with st.spinner(f"'{topic_input}' hakkında organik tweet üretiliyor..."):
                     generated = safe_generate_tweet(
                         topic=topic_input,
                         category=category_input,
@@ -255,7 +255,7 @@ with tab_create:
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
-            st.success(f"'{gen_data['title']}' Konusunda Le Marca Style Tweet Üretildi!")
+            st.success(f"'{gen_data['title']}' Konusunda Organik Tweet Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
             st.text_area("Üretilen Metin:", value=gen_data['content'], height=120, key="preview_text")
@@ -385,18 +385,12 @@ with tab_monetize:
     st.subheader("💰 X (Twitter) Etkileşim ve Para Kazanma Rehberi")
     
     st.markdown("""
-    ### 🎯 Le Marca Sports & Fabrizio Romano Tarzı Viral Tweet Taktikleri:
+    ### 🎯 @Boss_Osimhen Organik Taraftar Personası & Viral Taktikler:
 
-    #### 1. 🚨 Başta Emoji + Alt Satırda Kaynak / Muhabir Belirtme (Le Marca Stili)
-    - Örnek Format:
-      ```text
-      🚨 Mauro Icardi, şu an itibarıyla Lazio'nun gündeminden çıktı. Lazio, tüm odağını Andrea Pinamonti'ye verdi.
+    #### 1. 🗣️ "Organik Taraftar Ağzı" Söylemini Kullanın
+    - Kuru muhabir haberi değil; stadyum ve kahvehane sohbeti sıcaklığında (*"Abi valla bakıyorum da...", "Yok artık yahu!", "Net söylüyorum..."*) ifadeler kullanın.
 
-      (Matteo Moretto)
-      ```
-    - Bu format X üzerinde %100 profesyonel haber hesabı algısı oluşturur ve en yüksek RT/Beğeni oranına sahiptir.
-
-    #### 2. 🕒 En Yüksek Etkileşim Saatleri
-    - **Maç Günleri:** Maç başlamadan 1 saat önce ve maç bittikten ilk 30 dakika içinde.
-    - **Normal Günler:** Öğle 12:00 - 13:00 ve Akşam 20:30 - 22:30.
+    #### 2. 🔑 Twitter API 401 & 403 Hataları Nasıl Çözülür?
+    - **401 Unauthorized Hatası:** Access Token ile Consumer Key eşleşmiyordur. [developer.twitter.com](https://developer.twitter.com/en/portal/dashboard) adresinde hem API Key'i hem de Access Token'ı **REGENERATE** edin.
+    - **403 Forbidden Hatası:** App Permissions 'Read' durumundadır. 'Read and Write' yapıp yeni Access Token alın.
     """)

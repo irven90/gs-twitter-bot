@@ -10,16 +10,15 @@ except ImportError:
 def publish_tweet(content: str, media_url: str = None) -> Tuple[bool, str]:
     """
     Publishes a tweet with optional image attachment to X (Twitter).
-    Returns (success: bool, message_or_tweet_id: str).
+    Strips credentials whitespace and handles 401 / 403 API errors with clear diagnostics.
     """
-    api_key = os.getenv("X_API_KEY")
-    api_secret = os.getenv("X_API_SECRET")
-    access_token = os.getenv("X_ACCESS_TOKEN")
-    access_token_secret = os.getenv("X_ACCESS_TOKEN_SECRET")
+    api_key = (os.getenv("X_API_KEY") or "").strip()
+    api_secret = (os.getenv("X_API_SECRET") or "").strip()
+    access_token = (os.getenv("X_ACCESS_TOKEN") or "").strip()
+    access_token_secret = (os.getenv("X_ACCESS_TOKEN_SECRET") or "").strip()
     
-    # Check credentials
+    # Check credentials availability
     if not all([api_key, api_secret, access_token, access_token_secret]) or not TWEEPY_AVAILABLE:
-        # Mock mode execution
         mock_id = f"mock_tweet_{os.urandom(4).hex()}"
         print(f"[MOCK PUBLISH] Content: {content} | Media: {media_url}")
         return True, f"SIMULATION_MODE_SUCCESS_{mock_id}"
@@ -53,10 +52,19 @@ def publish_tweet(content: str, media_url: str = None) -> Tuple[bool, str]:
     except Exception as e:
         err_msg = str(e)
         print(f"X API Publish Error: {err_msg}")
-        if "403" in err_msg or "permissions" in err_msg.lower():
+        
+        if "401" in err_msg or "unauthorized" in err_msg.lower():
+            return False, (
+                "⚠️ X API KİMLİK DOĞRULAMA HATASI (401 Unauthorized):\n"
+                "1. API Key / Secret ile Access Token / Secret anahtarlarınız eşleşmiyor veya geçersiz kılınmış.\n"
+                "2. Lütfen developer.twitter.com/en/portal/dashboard adresinden 'Keys and Tokens' sekmesine gidin.\n"
+                "3. Hem 'API Key & Secret' hem de 'Access Token & Secret' değerlerini REGENERATE edip yeni anahtarları ekleyin."
+            )
+        elif "403" in err_msg or "permissions" in err_msg.lower():
             return False, (
                 "⚠️ X API YAZMA İZNİ EKSİK (403 Forbidden):\n"
-                "Twitter Developer Portal -> App Settings -> User Authentication Settings sekmesinden "
+                "Developer Portal -> App Settings -> User Authentication Settings sekmesinden "
                 "App Permissions yetkisini 'Read' yerine 'Read and Write' yapmanız ve YENİ Access Token üretmeniz gerekmektedir."
             )
+            
         return False, f"Twitter API Hata: {err_msg}"
