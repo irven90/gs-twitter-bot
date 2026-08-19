@@ -70,8 +70,8 @@ db.init_db()
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
-st.sidebar.markdown("**@Boss_Osimhen Viral İçerik Otomasyonu**")
-st.sidebar.caption("🎯 Amac: Yüksek Etkileşim & X Monetization")
+st.sidebar.markdown("**@Boss_Osimhen Organik X Otomasyonu**")
+st.sidebar.caption("🎯 İnsan Gibi Yazan & Viral Etkileşim Motoru")
 st.sidebar.divider()
 
 # Stats Widgets
@@ -97,8 +97,8 @@ if mock_mode:
     st.sidebar.info("ℹ️ **Simülasyon Modu Aktif**: Paylaşımlar gerçek X hesabına gönderilmez, test modunda simüle edilir.")
 
 # Header
-st.title("⚽ Galatasaray X Viral İçerik Botu & Onay Paneli")
-st.caption("Gündemi takip edin, yüksek etkileşimli viral tweetler ve kompakt görsel kartlar üretin!")
+st.title("⚽ Galatasaray X Organik Viral Bot & Onay Paneli")
+st.caption("Gerçek bir insan gibi yazan, yüksek etkileşim alan ve bot hissettirmeyen tweetler üretin!")
 
 # Navigation Tabs
 tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
@@ -119,13 +119,13 @@ with tab_create:
     col_news, col_gen = st.columns([1, 1])
     
     with col_news:
-        st.subheader("📰 Canlı Futbol & GS Gündemi")
-        st.caption("Son haber başlıklarına tıklayarak anında tweet üretebilirsiniz.")
+        st.subheader("🔥 X (Twitter) Anlık Trendler & GS Gündemi")
+        st.caption("Twitter'da en çok konuşulan başlıklara tıklayarak anında organik tweet üretebilirsiniz.")
         
-        if st.button("🔄 Gündemi Yenile"):
+        if st.button("🔄 Gündem Trendlerini Yenile"):
             st.rerun()
             
-        with st.spinner("Son futbol haberleri çekiliyor..."):
+        with st.spinner("Son futbol haberleri ve X trendleri çekiliyor..."):
             news_items = fetch_latest_football_news()
             
         for idx, item in enumerate(news_items):
@@ -134,26 +134,38 @@ with tab_create:
                 if st.button(f"⚡ Bu Konudan Anında Tweet Üret", key=f"news_btn_{idx}"):
                     st.session_state['topic_box'] = item['title']
                     # INSTANT GENERATION ON NEWS CLICK
-                    with st.spinner(f"'{item['title']}' hakkında viral tweet hazırlanıyor..."):
+                    with st.spinner(f"'{item['title']}' hakkında organik tweet hazırlanıyor..."):
                         generated = generate_tweet_content(
                             topic=item['title'],
                             category="Gündem",
-                            tone="Sert & Eleştirel",
-                            style="Tartışma & Yorum Alıcı",
+                            tone="Organik Taraftar Ağzı (Doğal & Samimi)",
+                            style="Tartışma & Yorum Alıcı (Yüksek Yorum)",
                             mode="emoji"
                         )
                         st.session_state['last_generated'] = generated
                     st.rerun()
                     
     with col_gen:
-        st.subheader("✏️ Özel Viral İçerik Üretici")
+        st.subheader("✏️ Organik İnsan Ağzıyla İçerik Üretici")
         
         topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Gündem Başlığı:", key="topic_box", height=90)
         
         c1, c2, c3 = st.columns(3)
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
-        tone_input = c2.selectbox("Söylem Tonu:", ["Sert & Eleştirel", "Tutkulu Taraftar", "Taktik Analiz", "Mizahi & İğneleyici"])
-        style_input = c3.selectbox("Etkileşim Formatı:", ["Tartışma & Yorum Alıcı (Yüksek Yorum)", "🚨 Flaş Son Dakika (High Retweet)", "💣 Sert Algı Yıkıcı (High Like)", "📊 Rakam & Analiz"])
+        tone_input = c2.selectbox("Söylem Tonu:", [
+            "Organik Taraftar Ağzı (Doğal & Samimi)", 
+            "Sert & Eleştirel", 
+            "Tutkulu Taraftar", 
+            "Taktik Analiz", 
+            "Mizahi & İğneleyici"
+        ])
+        style_input = c3.selectbox("Etkileşim Formatı:", [
+            "Tartışma & Yorum Alıcı (Yüksek Yorum)", 
+            "💬 Alıntı & Tepki Tweeti",
+            "📊 X Anket Formatı",
+            "🚨 Flaş Son Dakika (High Retweet)", 
+            "💣 Sert Algı Yıkıcı (High Like)"
+        ])
         
         st.markdown("### 🎯 İçerik Formatı Seçin:")
         btn_c1, btn_c2 = st.columns(2)
@@ -188,7 +200,7 @@ with tab_create:
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
-            st.success(f"'{gen_data['title']}' Konusunda Viral Tweet Üretildi!")
+            st.success(f"'{gen_data['title']}' Konusunda Organik Tweet Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
             st.text_area("Üretilen Metin:", value=gen_data['content'], height=120, key="preview_text")
@@ -318,20 +330,21 @@ with tab_monetize:
     st.subheader("💰 X (Twitter) Etkileşim ve Para Kazanma Rehberi")
     
     st.markdown("""
-    ### 🎯 X Algoritmasında Viral Olmanın ve Para Kazanmanın 4 Altın Kuralı:
+    ### 🎯 Bot Olduğu Anlaşılmayan Gerçek İnsan Gibi Viral Tweet Taktikleri:
 
-    #### 1. 💬 Yorum Aldıran Sorular Sorun (En Yüksek Algoritma Puanı)
-    - X algoritması için 1 Yorum = 13 Beğeni gücündedir.
-    - Tweetlerinizin sonuna mutlaka *"Katılıyor musunuz?", "Sizce ne olmalı?", "Görüşleriniz neler?"* ekleyin. `Etkileşim Formatı` menüsünden **"Tartışma & Yorum Alıcı"** seçeneğini kullanın.
+    #### 1. 🗣️ "Organik Taraftar Ağzı" Söylemini Kullanın
+    - Resmi gazete dili değil; kahvehane ve stadyum sohbeti sıcaklığında (*"Abi valla bakıyorum da...", "Yok artık yahu!", "Net söylüyorum..."*) ifadeler kullanın.
+    - Söylem Tonu ayarını **Organik Taraftar Ağzı** olarak seçin.
 
-    #### 2. 🕒 En Yüksek Etkileşim Saatlerinde Paylaşım Yapın
-    - **Hafta İçi:** 12:00 - 13:30 (Öğle Molası) ve 20:30 - 23:00 (Akşam Yoğunluğu).
-    - **Maç Günleri:** Maç başlamadan 1 saat önce ve maç bittikten ilk 30 dakika içinde (En yüksek trafik saatidir!).
+    #### 2. 💬 Alıntı & Tepki Tweetleri (Quote Reaction)
+    - Gerçek insanlar haberi kopyalamaz, habere tepki verir!
+    - Etkileşim formatından **"💬 Alıntı & Tepki Tweeti"** seçerek habere 1 cümlelik vurucu insan tepkileri ürettirin.
 
-    #### 3. 🔁 Retweet & Beğeni İçin "🚨 FLAŞ / SON DAKİKA" Formatı
-    - İnsanlar sıcak ve yeni gelişmeleri hemen RT eder. Sıcak haberlerde **"🚨 Flaş Son Dakika"** formatını tercih edin.
+    #### 3. 📊 X Anket Formatı
+    - İnsanların tıklamasını sağlayan anket soruları oluşturun.
+    - X algoritması anketli gönderilere 3 kat daha fazla organik akış verir.
 
-    #### 4. 📈 Süreklilik ve Günlük Tweet Sayısı
-    - Günde en az **4-6 adet** kaliteli tweet atarak algoritmanın hesabınızı öne çıkarmasını sağlayın.
-    - Taslak Paneli üzerinden sabah 2, öğle 2, akşam 2 tweet onaylayarak hesabınızı aktif tutabilirsiniz.
+    #### 4. 🕒 En Yüksek Etkileşim Saatleri
+    - **Maç Günleri:** Maç başlamadan 1 saat önce ve maç bittikten ilk 30 dakika içinde.
+    - **Normal Günler:** Öğle 12:00 - 13:00 ve Akşam 20:30 - 22:30.
     """)

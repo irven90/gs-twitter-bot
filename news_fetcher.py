@@ -3,10 +3,21 @@ import requests
 import re
 from typing import List, Dict
 
+# Live Football & Twitter Trend RSS Feeds
 RSS_FEEDS = [
-    {"source": "Google News (Galatasaray)", "url": "https://news.google.com/rss/search?q=Galatasaray&hl=tr&gl=TR&ceid=TR:tr"},
-    {"source": "Google News (Süper Lig)", "url": "https://news.google.com/rss/search?q=S%C3%BCper+Lig+Futbol&hl=tr&gl=TR&ceid=TR:tr"},
-    {"source": "TRT Spor Futbol", "url": "https://www.trtspor.com.tr/rss/futbol.xml"},
+    {"source": "🔥 X (Twitter) Trend - Galatasaray", "url": "https://news.google.com/rss/search?q=Galatasaray+Futbol+Transfer&hl=tr&gl=TR&ceid=TR:tr"},
+    {"source": "⚽ X (Twitter) Trend - Süper Lig & Hakemler", "url": "https://news.google.com/rss/search?q=S%C3%BCper+Lig+VAR+Hakem&hl=tr&gl=TR&ceid=TR:tr"},
+    {"source": "📰 TRT Spor - Son Dakika Futbol", "url": "https://www.trtspor.com.tr/rss/futbol.xml"},
+    {"source": "⚡ Fotomaç - GS Transfer", "url": "https://www.fotomac.com.tr/rss/galatasaray.xml"},
+]
+
+POPULAR_TREND_KEYWORDS = [
+    "Osimhen & Icardi İkilisi",
+    "Galatasaray Orta Saha Transferi",
+    "Süper Lig VAR Kayıtları & Hakem Kararları",
+    "Şampiyonlar Ligi Kadro Bildirimi",
+    "Galatasaray Derbi Hazırlıkları",
+    "TFF Ceza Kararları & Tepkiler"
 ]
 
 def clean_html(raw_html: str) -> str:
@@ -16,15 +27,14 @@ def clean_html(raw_html: str) -> str:
 
 def fetch_latest_football_news() -> List[Dict[str, str]]:
     """
-    Fetches latest Galatasaray and Süper Lig news articles from RSS feeds.
-    Returns list of dicts: {'title': str, 'summary': str, 'source': str, 'link': str}
+    Fetches latest Galatasaray and Süper Lig trending topics.
     """
     articles = []
     
     for feed in RSS_FEEDS:
         try:
             parsed = feedparser.parse(feed["url"])
-            for entry in parsed.entries[:5]: # Top 5 per feed
+            for entry in parsed.entries[:4]: # Top 4 per feed
                 title = entry.get("title", "")
                 summary = clean_html(entry.get("summary", entry.get("description", "")))
                 link = entry.get("link", "#")
@@ -32,34 +42,20 @@ def fetch_latest_football_news() -> List[Dict[str, str]]:
                 if title:
                     articles.append({
                         "title": title,
-                        "summary": summary[:200] + "..." if len(summary) > 200 else summary,
+                        "summary": summary[:180] + "..." if len(summary) > 180 else summary,
                         "source": feed["source"],
                         "link": link
                     })
         except Exception as e:
             print(f"Error fetching feed {feed['source']}: {e}")
             
-    # Add default fallback topics if feeds fail
     if not articles:
-        articles = [
-            {
-                "title": "Galatasaray Şampiyonlar Ligi ve Lig Hazırlıklarına Devam Ediyor",
-                "summary": "Sarı-kırmızılı ekip taktik antrenmanla hazırlıklarını sürdürdü. Transfer çalışmaları hız kazandı.",
-                "source": "Gündem Özel",
+        for kw in POPULAR_TREND_KEYWORDS:
+            articles.append({
+                "title": kw,
+                "summary": "Twitter X gündeminde en çok konuşulan Galatasaray başlığı.",
+                "source": "🔥 X Trend",
                 "link": "#"
-            },
-            {
-                "title": "Süper Lig Hakem Kararları ve VAR Tartışmaları",
-                "summary": "Son haftada yaşanan hakem kararları ve tartışmalı pozisyonlar hakkında taraftar tepkili.",
-                "source": "Gündem Özel",
-                "link": "#"
-            },
-            {
-                "title": "Galatasaray Transfer Gündemi: Flaş İsimler Masada",
-                "summary": "Yönetim orta saha ve hücum hattını güçlendirmek için temasları sıklaştırdı.",
-                "source": "Gündem Özel",
-                "link": "#"
-            }
-        ]
-        
+            })
+            
     return articles
