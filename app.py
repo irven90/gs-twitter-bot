@@ -8,6 +8,22 @@ from ai_generator import generate_tweet_content
 from twitter_client import publish_tweet
 from card_generator import generate_gs_card
 
+# Inline Purger Function to 100% prevent AttributeError on Streamlit Cloud
+NEWSPAPER_WORDS = [
+    r'Fotomaç', r'Sözcü.*', r'Haber\s*7', r'Milliyet', r'Mynet', r'A\s*Spor',
+    r'Fanatik', r'Hürriyet', r'TRT\s*Spor', r'Sabah', r'NTV\s*Spor', r'Gazetesi'
+]
+
+def purge_newspaper_names(text: str) -> str:
+    """Rigorous inline sanitizer stripping ALL newspaper names and Google News prefixes."""
+    t = str(text)
+    t = re.sub(r'^Google News.*?:', '', t, flags=re.IGNORECASE)
+    t = re.sub(r'^\s*\(.*?\):\s*', '', t)
+    for word in NEWSPAPER_WORDS:
+        t = re.sub(r'(\s*-\s*|\s*\|\s*|\s+)' + word + r'.*$', '', t, flags=re.IGNORECASE)
+        t = re.sub(r'\b' + word + r'\b', '', t, flags=re.IGNORECASE)
+    return t.strip()
+
 # Sync Streamlit Secrets to os.environ so Gemini & X API work 100% on Streamlit Cloud!
 try:
     if hasattr(st, "secrets"):
@@ -46,7 +62,7 @@ if not st.session_state["authenticated"]:
 
 # Safe Wrapper to 100% prevent any Streamlit red error traceback box
 def safe_generate_tweet(topic, category="Gündem", tone="Le Marca Style", style="Haber Formatı", mode="emoji"):
-    clean_t = news_fetcher.purge_newspaper_names(topic)
+    clean_t = purge_newspaper_names(topic)
     try:
         return generate_tweet_content(topic=clean_t, category=category, tone=tone, style=style, mode=mode)
     except Exception:
@@ -90,8 +106,8 @@ db.init_db()
 raw_news_items = news_fetcher.fetch_latest_football_news()
 news_items = []
 for item in raw_news_items:
-    clean_t = news_fetcher.purge_newspaper_names(item['title'])
-    clean_s = news_fetcher.purge_newspaper_names(item['summary'])
+    clean_t = purge_newspaper_names(item['title'])
+    clean_s = purge_newspaper_names(item['summary'])
     news_items.append({
         "title": clean_t,
         "summary": clean_s,
@@ -104,7 +120,7 @@ default_latest_topic = news_items[0]['title'] if news_items else "🚨 Mauro Ica
 if 'topic_box' not in st.session_state or not st.session_state['topic_box']:
     st.session_state['topic_box'] = default_latest_topic
 else:
-    st.session_state['topic_box'] = news_fetcher.purge_newspaper_names(st.session_state['topic_box'])
+    st.session_state['topic_box'] = purge_newspaper_names(st.session_state['topic_box'])
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
