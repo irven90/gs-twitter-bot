@@ -10,71 +10,58 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
 
-SYSTEM_PROMPT_HUMAN_EMOJI = """
-Sen X (Twitter) Türkiye'de takılan, futbol duyumlarını, transferleri ve Galatasaray'ı tutkuyla takip eden GERÇEK BİR İNSAN VE GS TARAFTARISIN (@Boss_Osimhen).
-ASLA BOT GİBİ VEYA RESMİ GAZETE GİBİ YAZMA! X muhabirlerinin ve duyumcuların tarzında, arkadaşlarınla futbol konuşurken kullandığın doğal, samimi, vurucu dili kullan.
+LE_MARCA_PROMPT = """
+Sen X (Twitter) platformunda 'Le Marca Sports' ve Fabrizio Romano tarzında profesyonel spor haberleri yayınlayan bir futbol muhabirisin.
+Amacın verilen haber veya duyumu ({topic}) AYNEN LE MARCA SPORTS FORMATINDA yazmak.
 
-Söylem Tonu: "{tone}"
-Girdi Konusu / Duyum: "{topic}"
-Etkileşim Formatı: "{style}"
+LE MARCA SPORTS TWEET FORMATI ÖRNEĞİ:
+🚨 Mauro Icardi, şu an itibarıyla Lazio'nun gündeminden çıktı. Lazio, tüm odağını Andrea Pinamonti'ye verdi.
 
-KURALLAR (BOT HİSSİNİ YOK ETMEK İÇİN):
-1. Doğal Günlük Konuşma Dili Kullan: "Abi valla duyumları görünce şaşırmadım...", "Yok artık yahu!", "Şu pozisyona net penaltı demeyen gitsin voleybol izlesin net!", "Osimhen bu lige çok fazla abi..." gibi samimi kalıplar kullanabilirsin.
-2. Eğer 'Organik Taraftar Ağzı' seçildiyse; resmiyetten tamamen uzaklaş, stadyum sohbeti sıcaklığında yaz.
-3. Eğer '💬 Alıntı & Tepki' formatı seçildiyse; duyuma verilen 1-2 cümlelik kısa, şok verici ve çok doğal bir insan tepkisi yaz.
-4. Eğer '📊 X Anket Formatı' seçildiyse; haber hakkında takipçilere 1 soru sor ve altına A), B), C), D) şıklarını ekle!
-5. Karakter sınırı: Max 240 karakter. Sonuna 1-2 doğal hashtag ekle (#Galatasaray #GS).
-6. Emojileri tam bir insanın attığı gibi 1-3 adet doğal koy (💛❤️, 🦁, 🚨, 💣, ⚽).
+(Matteo Moretto)
+
+KURALLAR:
+1. Tweet başı emoji ile başlasın: 🚨 veya 💣 veya ⚡
+2. Haber cümlesi kısa, net, haber diliyle ve vurucu yazısın. Gereksiz dolgu kelimeleri kullanma!
+3. Tweetin ALT SATIRINDA parantez içinde muhabir/kaynak belirt: (Yağız Sabuncuoğlu), (Nevzat Dindar), (Fabrizio Romano) veya (X Duyum).
+4. Asla gazete ismi (Fotomaç, Sözcü vs) kullanma!
+5. Maksimum 200 karakter olsun.
 """
 
-SYSTEM_PROMPT_GRAPHIC = """
-Sen Galatasaray yorumcusu @Boss_Osimhen olarak verilen duyum veya gündem konusu ({topic}) hakkında grafik kart üzerinde yayınlanacak kısa ve vurucu bir Türkçe yorum yazıyorsun.
-Metin resmi, kaliteli, hırslı ve net bir futbol yorumu olsun.
-İstenen ton: {tone}.
-"""
+REPORTERS = ["Yağız Sabuncuoğlu", "Nevzat Dindar", "Fabrizio Romano", "Matteo Moretto", "Haluk Yürekli", "X Duyum"]
 
-HUMAN_FALLBACKS = {
-    "Organik Taraftar Ağzı (Doğal & Samimi)": [
-        "Abi valla duyumları görünce şaşırmadım. {topic} konusunda yine herkes uzman kesilmiş. Şu olayın netliğini göremeyen gitsin başka spor izlesin net! 💛❤️ #Galatasaray",
-        "Yok artık yahu! {topic} hakkında yapılan bu yorumlar tam akıl tutulması. Galatasaray taraftarı bu masalları yemez kardeş! 🦁🔥 #GS",
-        "Net söylüyorum: {topic} konusunda yönetim masaya yumruğunu vurmazsa bu iş uzar. Bize laf değil icraat lazım abi! 💛❤️ #Galatasaray"
-    ],
-    "💬 Alıntı & Tepki Tweeti": [
-        "Şu haberin neresinden tutsan elinde kalıyor valla. Şaşırdık mı? Tabii ki hayır! 💛❤️ #Galatasaray",
-        "Hahaha yahu şaka gibi açıklama! Güneş balçıkla sıvanmaz kardeş, Galatasaray'ın büyüklüğü ortada! 🦁🔥 #GS",
-        "İşte duymak istediğimiz duyum haber tam olarak bu! Bravo! 💛❤️ #Galatasaray"
-    ],
-    "📊 X Anket Formatı": [
-        "Sizce {topic} konusunda ne yapılmalı?\n\nA) Hemen Bitirilmeli 🔥\nB) Alternatif Bakılmalı ⚽\nC) Beklenmeli 🦁\n\nYorumlarda buluşalım! 💛❤️ #Galatasaray",
-        "{topic} haberi hakkında ne düşünüyorsunuz taraftar?\n\nA) Tamamen Doğru ✅\nB) Yanlış Haber ❌\nC) Kararsızım 🤔\n\n#Galatasaray #GS"
-    ]
-}
+def generate_le_marca_fallback(topic: str) -> str:
+    clean_t = str(topic).strip()
+    # Strip newspaper names from topic
+    clean_t = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', clean_t, flags=re.IGNORECASE)
+    clean_t = re.sub(r'^🚨 X DUYUM \| ', '', clean_t)
+    
+    reporter = random.choice(REPORTERS)
+    return f"🚨 {clean_t}.\n\n({reporter})"
 
 def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
     """
-    Bulletproof tweet content generator accepting positional OR keyword arguments safely.
+    Generates tweets matching exact Le Marca Sports format.
     """
-    # Overwrite if passed in kwargs or args
     topic = kwargs.get("topic") if "topic" in kwargs else (args[0] if len(args) > 0 else "Galatasaray Transfer Gündemi")
     category = kwargs.get("category") if "category" in kwargs else (args[1] if len(args) > 1 else "Gündem")
-    tone = kwargs.get("tone") if "tone" in kwargs else (args[2] if len(args) > 2 else "Organik Taraftar Ağzı (Doğal & Samimi)")
-    style = kwargs.get("style") if "style" in kwargs else (args[3] if len(args) > 3 else "Tartışma & Yorum Alıcı (Yüksek Yorum)")
+    tone = kwargs.get("tone") if "tone" in kwargs else (args[2] if len(args) > 2 else "Le Marca Style")
+    style = kwargs.get("style") if "style" in kwargs else (args[3] if len(args) > 3 else "Haber Formatı")
     mode = kwargs.get("mode") if "mode" in kwargs else (args[4] if len(args) > 4 else "emoji")
     
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     content = ""
     clean_topic = str(topic).strip() if topic else "Galatasaray Transfer Gündemi"
-    
-    sys_prompt = SYSTEM_PROMPT_HUMAN_EMOJI if mode == "emoji" else SYSTEM_PROMPT_GRAPHIC
+    clean_topic = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', clean_topic, flags=re.IGNORECASE)
+    clean_topic = re.sub(r'^🚨 X DUYUM \| ', '', clean_topic)
     
     if GEMINI_AVAILABLE and gemini_api_key:
         try:
             genai.configure(api_key=gemini_api_key)
             model = genai.GenerativeModel(
                 'gemini-1.5-flash',
-                generation_config={"temperature": 0.92}
+                generation_config={"temperature": 0.7}
             )
-            prompt = sys_prompt.format(topic=clean_topic, tone=tone, style=style)
+            prompt = LE_MARCA_PROMPT.format(topic=clean_topic)
             response = model.generate_content(prompt)
             content = response.text.strip()
         except Exception as e:
@@ -82,15 +69,14 @@ def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
             content = ""
             
     if not content or len(content) < 15:
-        templates = HUMAN_FALLBACKS.get(tone, HUMAN_FALLBACKS.get(style, HUMAN_FALLBACKS["Organik Taraftar Ağzı (Doğal & Samimi)"]))
-        raw_template = random.choice(templates)
-        content = raw_template.format(topic=clean_topic)
+        content = generate_le_marca_fallback(clean_topic)
         
     media_url = None
     media_type = "none"
     
     if mode == "graphic":
         try:
+            # Generate compact 800x380 graphic card
             media_url = generate_gs_card(
                 text=content[:200],
                 category=category,

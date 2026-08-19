@@ -8,22 +8,6 @@ from ai_generator import generate_tweet_content
 from twitter_client import publish_tweet
 from card_generator import generate_gs_card
 
-# Safely import or define sanitize_news_title to 100% prevent ImportError on Streamlit Cloud
-fetch_latest_football_news = news_fetcher.fetch_latest_football_news
-
-if hasattr(news_fetcher, "sanitize_news_title"):
-    sanitize_news_title = news_fetcher.sanitize_news_title
-else:
-    def sanitize_news_title(raw_title: str) -> str:
-        title = str(raw_title)
-        title = re.sub(r'^Google News.*?:', '', title, flags=re.IGNORECASE)
-        title = re.sub(r'^\s*\(.*?\):\s*', '', title)
-        title = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', title, flags=re.IGNORECASE)
-        clean_t = title.strip()
-        if not clean_t.startswith("🚨") and not clean_t.startswith("⚡") and not clean_t.startswith("🔥") and not clean_t.startswith("💣"):
-            clean_t = f"🚨 X DUYUM | {clean_t}"
-        return clean_t
-
 # Sync Streamlit Secrets to os.environ so Gemini & X API work 100% on Streamlit Cloud!
 try:
     if hasattr(st, "secrets"):
@@ -61,8 +45,8 @@ if not st.session_state["authenticated"]:
     st.stop()
 
 # Safe Wrapper to 100% prevent any Streamlit red error traceback box
-def safe_generate_tweet(topic, category="Gündem", tone="Organik Taraftar Ağzı (Doğal & Samimi)", style="Tartışma & Yorum Alıcı (Yüksek Yorum)", mode="emoji"):
-    clean_t = sanitize_news_title(topic)
+def safe_generate_tweet(topic, category="Gündem", tone="Le Marca Style", style="Haber Formatı", mode="emoji"):
+    clean_t = news_fetcher.purge_newspaper_names(topic)
     try:
         return generate_tweet_content(topic=clean_t, category=category, tone=tone, style=style, mode=mode)
     except Exception:
@@ -71,7 +55,7 @@ def safe_generate_tweet(topic, category="Gündem", tone="Organik Taraftar Ağzı
         except Exception:
             return {
                 "title": clean_t[:50],
-                "content": f"🚨 {clean_t}! Galatasaray gündeminde sıcak gelişmeler var. Bu takım için hırs ve mücadele şart! 💛❤️ #Galatasaray #GS",
+                "content": f"🚨 {clean_t}.\n\n(Nevzat Dindar)",
                 "category": category,
                 "media_type": "none",
                 "media_url": None
@@ -102,29 +86,30 @@ st.markdown("""
 # Initialize Database
 db.init_db()
 
-# Fetch latest X reporter news upfront and sanitize titles
-raw_news_items = fetch_latest_football_news()
+# Fetch latest news upfront and purge all newspaper names completely
+raw_news_items = news_fetcher.fetch_latest_football_news()
 news_items = []
 for item in raw_news_items:
-    clean_t = sanitize_news_title(item['title'])
+    clean_t = news_fetcher.purge_newspaper_names(item['title'])
+    clean_s = news_fetcher.purge_newspaper_names(item['summary'])
     news_items.append({
         "title": clean_t,
-        "summary": item['summary'],
+        "summary": clean_s,
         "source": item['source']
     })
 
-default_latest_topic = news_items[0]['title'] if news_items else "🚨 X DUYUM | Galatasaray Transfer ve VAR Gündemi"
+default_latest_topic = news_items[0]['title'] if news_items else "🚨 Mauro Icardi transfer gündemi hakkında sıcak gelişme"
 
 # Initialize Session State Topic Box dynamically from latest clean news
 if 'topic_box' not in st.session_state or not st.session_state['topic_box']:
     st.session_state['topic_box'] = default_latest_topic
 else:
-    st.session_state['topic_box'] = sanitize_news_title(st.session_state['topic_box'])
+    st.session_state['topic_box'] = news_fetcher.purge_newspaper_names(st.session_state['topic_box'])
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
-st.sidebar.markdown("**@Boss_Osimhen Organik X Otomasyonu**")
-st.sidebar.caption("🎯 X Duyumcuları & Futbol Muhabirleri Akışı")
+st.sidebar.markdown("**@Boss_Osimhen Le Marca Style Otomasyonu**")
+st.sidebar.caption("🎯 Le Marca & Fabrizio Romano Formatında Tweetler")
 st.sidebar.divider()
 
 # Stats Widgets
@@ -150,8 +135,8 @@ if mock_mode:
     st.sidebar.info("ℹ️ **Simülasyon Modu Aktif**: Paylaşımlar gerçek X hesabına gönderilmez, test modunda simüle edilir.")
 
 # Header
-st.title("⚽ Galatasaray X Duyum & Trend İçerik Botu")
-st.caption("X duyumcuları ve futbol muhabirlerinin sıcak gündemini otomatik takip edin, organik tweetler üretin!")
+st.title("⚽ Galatasaray X Le Marca Style İçerik Botu")
+st.caption("Le Marca Sports ve Fabrizio Romano formatında profesyonel futbol duyumları ve tweetler üretin!")
 
 # Navigation Tabs
 tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
@@ -168,8 +153,8 @@ with tab_create:
     col_news, col_gen = st.columns([1, 1])
     
     with col_news:
-        st.subheader("🚨 X Duyumcu & Futbol Muhabirleri Akışı")
-        st.caption("Büyük futbol Twitter sayfaları ve duyumcuların sıcak haberlerine tıklayarak tweet üretebilirsiniz.")
+        st.subheader("🚨 Le Marca Style X Duyum Akışı")
+        st.caption("Aşağıdaki sıcak futbol duyumlarına tıklayarak anında Le Marca tarzı tweet üretebilirsiniz.")
         
         if st.button("🔄 Gündemi Yenile"):
             st.rerun()
@@ -179,37 +164,36 @@ with tab_create:
                 st.write(item['summary'])
                 if st.button(f"⚡ Bu Konudan Anında Tweet Üret", key=f"news_btn_{idx}"):
                     st.session_state['topic_box'] = item['title']
-                    with st.spinner(f"'{item['title']}' hakkında organik tweet hazırlanıyor..."):
-                        generated = safe_generate_tweet(
-                            topic=item['title'],
-                            category="Gündem",
-                            tone="Organik Taraftar Ağzı (Doğal & Samimi)",
-                            style="Tartışma & Yorum Alıcı (Yüksek Yorum)",
-                            mode="emoji"
-                        )
-                        st.session_state['last_generated'] = generated
+                    generated = safe_generate_tweet(
+                        topic=item['title'],
+                        category="Transfer",
+                        tone="Le Marca Style",
+                        style="Haber Formatı",
+                        mode="emoji"
+                    )
+                    st.session_state['last_generated'] = generated
                     st.rerun()
                     
     with col_gen:
-        st.subheader("✏️ Organik İnsan Ağzıyla İçerik Üretici")
+        st.subheader("✏️ Le Marca Style Tweet Üretici")
         
         topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", key="topic_box", height=90)
         
         c1, c2, c3 = st.columns(3)
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
         tone_input = c2.selectbox("Söylem Tonu:", [
+            "Le Marca Style (Profesyonel Muhabir)", 
             "Organik Taraftar Ağzı (Doğal & Samimi)", 
             "Sert & Eleştirel", 
             "Tutkulu Taraftar", 
-            "Taktik Analiz", 
-            "Mizahi & İğneleyici"
+            "Taktik Analiz"
         ])
         style_input = c3.selectbox("Etkileşim Formatı:", [
-            "Tartışma & Yorum Alıcı (Yüksek Yorum)", 
+            "Haber & Kaynak Formatı (Le Marca)", 
+            "Tartışma & Yorum Alıcı", 
             "💬 Alıntı & Tepki Tweeti",
             "📊 X Anket Formatı",
-            "🚨 Flaş Son Dakika (High Retweet)", 
-            "💣 Sert Algı Yıkıcı (High Like)"
+            "🚨 Flaş Son Dakika"
         ])
         
         st.markdown("### 🎯 İçerik Formatı Seçin:")
@@ -219,7 +203,7 @@ with tab_create:
             if not topic_input.strip():
                 st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
-                with st.spinner(f"'{topic_input}' hakkında emojili tweet üretiliyor..."):
+                with st.spinner(f"'{topic_input}' hakkında tweet üretiliyor..."):
                     generated = safe_generate_tweet(
                         topic=topic_input,
                         category=category_input,
@@ -245,7 +229,7 @@ with tab_create:
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
-            st.success(f"'{gen_data['title']}' Konusunda Organik Tweet Üretildi!")
+            st.success(f"'{gen_data['title']}' Konusunda Le Marca Style Tweet Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
             st.text_area("Üretilen Metin:", value=gen_data['content'], height=120, key="preview_text")
@@ -375,21 +359,18 @@ with tab_monetize:
     st.subheader("💰 X (Twitter) Etkileşim ve Para Kazanma Rehberi")
     
     st.markdown("""
-    ### 🎯 Bot Olduğu Anlaşılmayan Gerçek İnsan Gibi Viral Tweet Taktikleri:
+    ### 🎯 Le Marca Sports & Fabrizio Romano Tarzı Viral Tweet Taktikleri:
 
-    #### 1. 🗣️ "Organik Taraftar Ağzı" Söylemini Kullanın
-    - Resmi gazete dili değil; kahvehane ve stadyum sohbeti sıcaklığında (*"Abi valla bakıyorum da...", "Yok artık yahu!", "Net söylüyorum..."*) ifadeler kullanın.
-    - Söylem Tonu ayarını **Organik Taraftar Ağzı** olarak seçin.
+    #### 1. 🚨 Başta Emoji + Alt Satırda Kaynak / Muhabir Belirtme (Le Marca Stili)
+    - Örnek Format:
+      ```text
+      🚨 Mauro Icardi, şu an itibarıyla Lazio'nun gündeminden çıktı. Lazio, tüm odağını Andrea Pinamonti'ye verdi.
 
-    #### 2. 💬 Alıntı & Tepki Tweetleri (Quote Reaction)
-    - Gerçek insanlar haberi kopyalamaz, habere tepki verir!
-    - Etkileşim formatından **"💬 Alıntı & Tepki Tweeti"** seçerek habere 1 cümlelik vurucu insan tepkileri ürettirin.
+      (Matteo Moretto)
+      ```
+    - Bu format X üzerinde %100 profesyonel haber hesabı algısı oluşturur ve en yüksek RT/Beğeni oranına sahiptir.
 
-    #### 3. 📊 X Anket Formatı
-    - İnsanların tıklamasını sağlayan anket soruları oluşturun.
-    - X algoritması anketli gönderilere 3 kat daha fazla organik akış verir.
-
-    #### 4. 🕒 En Yüksek Etkileşim Saatleri
+    #### 2. 🕒 En Yüksek Etkileşim Saatleri
     - **Maç Günleri:** Maç başlamadan 1 saat önce ve maç bittikten ilk 30 dakika içinde.
     - **Normal Günler:** Öğle 12:00 - 13:00 ve Akşam 20:30 - 22:30.
     """)

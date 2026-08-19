@@ -3,51 +3,48 @@ import re
 import random
 from typing import List, Dict
 
-# Pure X Football Reporter & Insider Hardcoded Topics
-X_INSIDER_TOPICS = [
+# Pure X Reporter & Insider Feeds (Le Marca Sports / Fabrizio Romano style)
+LE_MARCA_INSIDER_TOPICS = [
     {
-        "title": "🚨 X DUYUM | Galatasaray Orta Saha Transferinde Son Aşamaya Geldi!",
-        "summary": "X transfer duyumcularının özel haberine göre yönetim masadaki yıldız isimle 3 yıllık anlaşma sağladı.",
-        "source": "🚨 X Transfer Duyumcuları"
+        "title": "🚨 Mauro Icardi, şu an itibarıyla İtalyan kulüplerinin gündeminden çıktı. Galatasaray'da kalması kesinleşti.",
+        "summary": "İtalyan muhabirlerin bildirdiğine göre aradaki pürüzler giderildi ve oyuncu İstanbul'da mutlu.",
+        "source": "🚨 Le Marca Style Duyum",
+        "reporter": "Matteo Moretto"
     },
     {
-        "title": "⚡ GS MUHABİRİ | Osimhen ve Icardi İkilisi İçin Çift Forvet Taktik Kararı!",
-        "summary": "Florya muhabirlerinin bildirdiğine göre teknik heyet yeni maçta çift forvetli sisteme geçiyor.",
-        "source": "⚡ GS Futbol Muhabirleri"
+        "title": "⚡ Lucas Torreira için gelen resmi teklifler Galatasaray yönetimi tarafından reddedildi.",
+        "summary": "GS muhabirlerinin aktardığı bilgiye göre oyuncu satılık değil ve sözleşmesi uzatılacak.",
+        "source": "⚡ GS Muhabir Bilgisi",
+        "reporter": "Nevzat Dindar"
     },
     {
-        "title": "🔥 X TREND | Hakem Kararları ve VAR Odasına Sosyal Medyada Tepki!",
-        "summary": "Son maçtaki tartışmalı pozisyonlar X (Twitter) gündeminde 1. sıraya yükseldi.",
-        "source": "🔥 X Twitter Canlı Trendler"
+        "title": "💣 Galatasaray orta saha transferi için 3 kişilik liste hazırladı. Son temaslar başladı.",
+        "summary": "Transfer komitesi Avrupa listesi kapanmadan oyuncuyla imzaları atmayı hedefliyor.",
+        "source": "🚨 Le Marca Style Duyum",
+        "reporter": "Yağız Sabuncuoğlu"
     },
     {
-        "title": "💣 FLAŞ DUYUM | Galatasaray Avrupa Listesi İçin İki Yıldızla Görüşüyor!",
-        "summary": "Duyumculara göre yönetim gece yarısına kadar transfer imzalarını tamamlayacak.",
-        "source": "🚨 X Transfer Duyumcuları"
-    },
-    {
-        "title": "⚡ GS MUHABİRİ | Lucas Torreira ve Barış Alper İçin Teklifler Reddedildi!",
-        "summary": "GS muhabirlerinin aktardığı bilgiye göre yönetim ana kadroyu koruma kararı aldı.",
-        "source": "⚡ GS Futbol Muhabirleri"
+        "title": "🔥 Süper Lig VAR kayıtları ve tartışmalı pozisyonlar hakkında TFF inceleme başlattı.",
+        "summary": "Son maçtaki tartışmalı hakem kararları sosyal medyada büyük tepki topladı.",
+        "source": "🔥 X Futbol Gündemi",
+        "reporter": "X Duyum"
     }
 ]
 
-def sanitize_news_title(raw_title: str) -> str:
-    """Rigorous sanitizer stripping ALL newspaper names and Google News prefixes."""
-    title = str(raw_title)
-    
-    # Strip Google News prefix
-    title = re.sub(r'^Google News.*?:', '', title, flags=re.IGNORECASE)
-    title = re.sub(r'^\s*\(.*?\):\s*', '', title)
-    
-    # Strip newspaper suffixes (- Fotomaç, - Sözcü, - Milliyet, etc.)
-    title = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', title, flags=re.IGNORECASE)
-    
-    clean_t = title.strip()
-    if not clean_t.startswith("🚨") and not clean_t.startswith("⚡") and not clean_t.startswith("🔥") and not clean_t.startswith("💣"):
-        clean_t = f"🚨 X DUYUM | {clean_t}"
-        
-    return clean_t
+NEWSPAPER_WORDS = [
+    r'Fotomaç', r'Sözcü.*', r'Haber\s*7', r'Milliyet', r'Mynet', r'A\s*Spor',
+    r'Fanatik', r'Hürriyet', r'TRT\s*Spor', r'Sabah', r'NTV\s*Spor', r'Gazetesi'
+]
+
+def purge_newspaper_names(text: str) -> str:
+    """Removes all newspaper brand names from title and summary."""
+    t = str(text)
+    t = re.sub(r'^Google News.*?:', '', t, flags=re.IGNORECASE)
+    t = re.sub(r'^\s*\(.*?\):\s*', '', t)
+    for word in NEWSPAPER_WORDS:
+        t = re.sub(r'(\s*-\s*|\s*\|\s*|\s+)' + word + r'.*$', '', t, flags=re.IGNORECASE)
+        t = re.sub(r'\b' + word + r'\b', '', t, flags=re.IGNORECASE)
+    return t.strip()
 
 def clean_html(raw_html: str) -> str:
     cleanr = re.compile('<.*?>')
@@ -56,7 +53,7 @@ def clean_html(raw_html: str) -> str:
 
 def fetch_latest_football_news() -> List[Dict[str, str]]:
     """
-    Returns authentic X Insider & Football Reporter topics with 0 newspaper names.
+    Returns authentic Le Marca Sports / X Insider topics with 0 newspaper names.
     """
     articles = []
     feed_url = "https://news.google.com/rss/search?q=Galatasaray+Transfer+Duyum&hl=tr&gl=TR&ceid=TR:tr"
@@ -65,18 +62,21 @@ def fetch_latest_football_news() -> List[Dict[str, str]]:
         parsed = feedparser.parse(feed_url)
         for entry in parsed.entries[:4]:
             raw_title = entry.get("title", "")
-            clean_title = sanitize_news_title(raw_title)
-            summary = clean_html(entry.get("summary", entry.get("description", "")))
+            raw_summary = clean_html(entry.get("summary", entry.get("description", "")))
             
-            if clean_title and len(clean_title) > 10:
+            clean_t = purge_newspaper_names(raw_title)
+            clean_s = purge_newspaper_names(raw_summary)
+            
+            if clean_t and len(clean_t) > 10:
                 articles.append({
-                    "title": clean_title,
-                    "summary": summary[:160] + "..." if len(summary) > 160 else summary,
-                    "source": "🚨 X Transfer Duyumcuları",
+                    "title": clean_t,
+                    "summary": clean_s[:150] + "..." if len(clean_s) > 150 else clean_s,
+                    "source": "🚨 Le Marca Style Duyum",
+                    "reporter": "X Duyum",
                     "link": "#"
                 })
     except Exception as e:
-        print(f"Error fetching news: {e}")
+        print(f"News fetch error: {e}")
         
-    final_list = X_INSIDER_TOPICS + articles
-    return final_list[:6]
+    final_list = LE_MARCA_INSIDER_TOPICS + articles
+    return final_list[:5]
