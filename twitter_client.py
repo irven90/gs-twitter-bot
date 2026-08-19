@@ -10,7 +10,7 @@ except ImportError:
 def publish_tweet(content: str, media_url: str = None) -> Tuple[bool, str]:
     """
     Publishes a tweet with optional image attachment to X (Twitter).
-    Strips credentials whitespace and handles 401 / 403 API errors with clear diagnostics.
+    Handles 401, 402, 403 API errors gracefully with clear user diagnostics.
     """
     api_key = (os.getenv("X_API_KEY") or "").strip()
     api_secret = (os.getenv("X_API_SECRET") or "").strip()
@@ -53,7 +53,13 @@ def publish_tweet(content: str, media_url: str = None) -> Tuple[bool, str]:
         err_msg = str(e)
         print(f"X API Publish Error: {err_msg}")
         
-        if "401" in err_msg or "unauthorized" in err_msg.lower():
+        if "402" in err_msg or "credits depleted" in err_msg.lower() or "payment required" in err_msg.lower():
+            return False, (
+                "⚠️ X (Twitter) ÜCRETSİZ TWEET KOTANIZ DOLDU (402 Payment Required):\n"
+                "Twitter Developer Portal hesabınızın bu ayki ücretsiz tweet atma kotası (1,500 tweet) tükenmiştir.\n"
+                "Çözüm: Ürettiğiniz tweetleri 'Taslaklara Kaydet' butonuna basarak kaydedebilir veya Developer Portal'dan kotanızı sıfırlayabilirsiniz."
+            )
+        elif "401" in err_msg or "unauthorized" in err_msg.lower():
             return False, (
                 "⚠️ X API KİMLİK DOĞRULAMA HATASI (401 Unauthorized):\n"
                 "1. API Key / Secret ile Access Token / Secret anahtarlarınız eşleşmiyor veya geçersiz kılınmış.\n"

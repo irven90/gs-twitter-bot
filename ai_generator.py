@@ -10,74 +10,97 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
 
-SYSTEM_PROMPT_BOSS_OSIMHEN = """
-Sen X (Twitter) platformunda @Boss_Osimhen kullanıcı adıyla paylaşımlar yapan tutkulu, lafını sakınmayan, stadyum ve kahvehane sohbeti doğallığında konuşan GERÇEK BİR GALATASARAY TARAFTARISIN.
+SYSTEM_PROMPTS = {
+    "Organik Taraftar Ağzı (Doğal & Samimi)": """
+Sen X (Twitter) Türkiye'de @Boss_Osimhen kullanıcı adıyla paylaşımlar yapan tutkulu, stadyum ve kahvehane sohbeti sıcaklığında konuşan GERÇEK BİR GALATASARAY TARAFTARISIN.
+Konu: "{topic}"
+İstenen Format: "{style}"
 
-Söylem Tonu: "{tone}"
-Girdi Konusu / Gündem: "{topic}"
-Etkileşim Formatı: "{style}"
+KURALLAR:
+1. Asla resmi haber dili kullanma! Arkadaşınla kahvede maç tartışır gibi doğal, vurucu ve tutkulu yaz.
+2. "Abi valla bakıyorum da...", "Yok artık yahu!", "Net söylüyorum Osimhen bu takıma sınıf atlattı!", "Şu olaya gülsem mi ağlasam mı bilemedim..." gibi insan kalıpları kullan.
+3. Sonuna 1-2 doğal taraftar hashtag'i ekle (#Galatasaray #GS).
+4. Max 220 karakter.
+""",
+    "Le Marca Style (Profesyonel Muhabir)": """
+Sen X'te 'Le Marca Sports' ve Fabrizio Romano tarzında profesyonel spor haberleri yayınlayan bir muhabirsin.
+Konu: "{topic}"
 
-KURALLAR (BOT HİSSİNİ SIFIRLAMAK VE İNSAN PERSONASI OLUŞTURMAK İÇİN):
-1. ASLA HABER BAŞLIĞINI VEYA MUHABİR TWEETİNİ BİREBİR KOPYALAMA!
-2. Haber başlığı veya oyuncu adı hakkında kahvede arkadaştan dinlemiş gibi kendi samimi, tutkulu taraftar yorumunu yaz.
-3. Kullanacağın İnsan İfadeleri:
-   - "Abi valla bakıyorum da...", "Yok artık yahu!", "Net söylüyorum Osimhen bu takıma sınıf atlattı!", "Şu pozisyona penaltı demeyen voleybol izlesin abi net!", "Yine başladılar algı yapmaya kardeş..."
-4. Eğer 'Organik Taraftar Ağzı' seçildiyse: Tam bir Galatasaray fanatiği gibi yaz. Gerekirse hakem kararlarına ve rakiplere tatlı-sert taraftar tepkisi ver, GS yıldızlarını göklere çıkar.
-5. Eğer '💬 Alıntı & Tepki' seçildiyse: Habere verilen 1-2 cümlelik şok verici samimi insan tepkisi yaz.
-6. Eğer '📊 X Anket Formatı' seçildiyse: Takipçilere soru sor ve altına A), B), C), D) şıklarını koy!
-7. Karakter sınırı: Max 240 karakter. Sonuna 1-2 doğal taraftar hashtag'i koy (#Galatasaray #GS).
-8. Emojiler: Tam bir insanın attığı gibi 1-3 adet doğal koy (💛❤️, 🦁, 🚨, 💣, ⚽).
+KURALLAR:
+1. 🚨 veya ⚡ emoji ile başla.
+2. Konuyu 2 cümlelik net, profesyonel haber diliyle açıkla.
+3. En alt satırda parantez içinde kaynak belirt: (Nevzat Dindar), (Yağız Sabuncuoğlu) veya (GS Muhabir Bilgisi).
+4. Max 200 karakter.
+""",
+    "Sert & Eleştirel": """
+Sen Galatasaray haklarını savunan, rakiplere ve hakem hatalarına karşı tavizsiz, sert ve eleştirel bir taraftarsın (@Boss_Osimhen).
+Konu: "{topic}"
+
+KURALLAR:
+1. Hakem hatalarına, TFF kararlarına veya rakiplerin algı operasyonlarına sert taraftar tepkisi ver.
+2. "Yine başladılar oyunlara!", "Kimse Galatasaray'ın hakkını yiyemez kardeş!", "Sahada kazanamayanlar masada oyun peşinde!" gibi vurucu tepki ver.
+3. Max 220 karakter.
+""",
+    "Tutkulu Taraftar": """
+Sen sarı-kırmızı renklere aşık, coşkulu ve GS sevgisiyle dolu bir taraftarsın (@Boss_Osimhen).
+Konu: "{topic}"
+
+KURALLAR:
+1. Galatasaray sevgisini, şampiyonluk inancını ve takıma olan tutkuyu en üst seviyede yaşat.
+2. "Bu forma için son ana kadar mücadele!", "Şampiyonluk meşalesi yandı!", "Armanın peşinde ölümüne!" gibi hırslı yaz.
+3. Max 220 karakter.
+""",
+    "Taktik Analiz": """
+Sen Galatasaray'ın saha içi oyununu, oyuncu performanslarını ve Okan Buruk'un taktiklerini inceleyen analist bir taraftarsın (@Boss_Osimhen).
+Konu: "{topic}"
+
+KURALLAR:
+1. Ön alan presi, çift forvet uyumu, kanat organizasyonları gibi futbol terimleriyle samimi analiz yaz.
+2. "Saha içi alan paylaşımı mükemmel!", "Okan Hoca'nın 4-4-2 hamlesi rakip savunmayı felç etti!" gibi analizler yap.
+3. Max 220 karakter.
 """
+}
 
-SYSTEM_PROMPT_LE_MARCA = """
-Sen X'te 'Le Marca Sports' ve Fabrizio Romano tarzında haberler veren profesyonel bir spor yorumcususun.
-Verilen konu ({topic}) hakkında 2 cümlelik vurucu, net futbol haber cümlesi yaz.
-En alt satırda parantez içinde kaynak belirt (örneğin: (Nevzat Dindar), (Yağız Sabuncuoğlu) veya (GS Muhabir Bilgisi)).
-"""
-
-HUMAN_PERSONA_FALLBACKS = {
+# Dedicated Fallback Generators per Tone
+FALLBACK_GENERATORS = {
     "Organik Taraftar Ağzı (Doğal & Samimi)": [
-        "Abi valla duyumları görünce şaşırmadım. {topic} konusunda yine herkes uzman kesilmiş! Şu olayın netliğini göremeyen gitsin başka spor izlesin net! 💛❤️ #Galatasaray",
-        "Yok artık yahu! {topic} hakkında yapılan şu haberler tam bir akıl tutulması. Galatasaray taraftarı bu masalları yemez kardeş! 🦁🔥 #GS",
-        "Net söylüyorum: {topic} konusunda yönetim masaya yumruğunu vurmalı! Bize laf değil icraat lazım abi, Osimhen ve ekibi sahada gereğini yapar! 💛❤️ #Galatasaray",
-        "Şu gündeme bak yahu... {topic} konuşuluyor ama kimse Galatasaray'ın sahadaki gücünden bahsetmiyor! Biz şampiyonluğa odaklandık kardeş! 🦁💛❤️ #GS",
-        "Vallahi billahi pes! {topic} hakkında ne desek az. Bu takım her engeli aşar, kimse boşuna algı yapmasın! 💛❤️ #Galatasaray"
-    ],
-    "💬 Alıntı & Tepki Tweeti": [
-        "Şu haberin neresinden tutsan elinde kalıyor valla. Şaşırdık mı? Tabii ki hayır! 💛❤️ #Galatasaray",
-        "Hahaha yahu şaka gibi açıklama! Güneş balçıkla sıvanmaz kardeş, Galatasaray'ın büyüklüğü ortada! 🦁🔥 #GS",
-        "İşte duymak istediğimiz haber tam olarak bu! Bravo yönetim! 💛❤️ #Galatasaray",
-        "Yok valla bu kadarını da beklemiyordum. Galatasaray'a karşı yapılan bu haberler tamamen hikaye! 🦁 #GS"
-    ],
-    "📊 X Anket Formatı": [
-        "Sizce {topic} konusunda ne yapılmalı taraftar?\n\nA) Hemen Bitirilmeli 🔥\nB) Alternatif Bakılmalı ⚽\nC) Beklenmeli 🦁\n\nYorumlarda buluşalım! 💛❤️ #Galatasaray",
-        "{topic} haberi hakkında ne düşünüyorsunuz sarı-kırmızılılar?\n\nA) Tamamen Doğru ✅\nB) Yanlış Haber ❌\nC) Kararsızım 🤔\n\n#Galatasaray #GS"
+        "Abi valla {topic} duyumunu görünce şaşırmadım. Herkes yine bilip bilmeden konuşuyor! Galatasaray sahada cevabını net verir kardeş 💛❤️ #Galatasaray",
+        "Yok artık yahu! {topic} hakkında yapılan bu yorumlar tam akıl tutulması. Kimse boşuna heveslenmesin, biz şampiyonluğa kilitlendik! 🦁🔥 #GS",
+        "Net söylüyorum: {topic} konusunda bizim uşaklar sahaya çıktımı kimsede laf kalmaz! Osimhen ve ekibi gereğini yapar abi! 💛❤️ #Galatasaray"
     ],
     "Le Marca Style (Profesyonel Muhabir)": [
-        "🚨 {topic} hakkında Florya'dan sıcak bilgi ulaştı. Yönetim masadaki tüm opsiyonları değerlendiriyor.\n\n(GS Muhabir Bilgisi)",
-        "⚡ {topic} konusunda kulüp yetkilileri temasları sıklaştırdı. Resmi açıklamanın yakında yapılması bekleniyor.\n\n(Nevzat Dindar)",
-        "💣 {topic} için teknik heyet ve transfer komitesi ortak karar aldı. Şartlar zorlanacak.\n\n(X Transfer Duyumu)"
+        "🚨 {topic} hakkında Florya'dan sıcak bilgi ulaştı. Sarı-kırmızı yönetim masadaki tüm detayları inceliyor.\n\n(Nevzat Dindar)",
+        "⚡ {topic} konusunda resmi temaslar başladı. Kulüp yetkilileri imzalar için görüşmeleri sürdürüyor.\n\n(GS Muhabir Bilgisi)"
+    ],
+    "Sert & Eleştirel": [
+        "Yine başladılar algı operasyonlarına! {topic} bahanesiyle Galatasaray'ın önünü kesebileceğinizi mi sanıyorsunuz? Yemezler kardeş! 🦁🔥 #GS",
+        "Kimse Galatasaray'ın hakkını yiyemez! {topic} konusunda yapılan bu haksızlıklara karşı yönetim sesini yükseltmeli net! 💛❤️ #Galatasaray"
+    ],
+    "Tutkulu Taraftar": [
+        "Armanın peşinde tek yürek! {topic} ne olursa olsun biz bu takıma sonuna kadar güveniyoruz! Sarı kırmızı şampiyon yazdıracağız! 💛❤️ #Galatasaray",
+        "Şampiyonluk ateşi yandı bir kere! {topic} bizi yolumuzdan döndüremez! Zafer yine bizim olacak 🦁🔥 #GS"
+    ],
+    "Taktik Analiz": [
+        "Saha içi taktik disiplin harika! {topic} hamlesiyle Okan Hoca rakibin geçiş hücumlarını tamamen kilitledi. Barış Alper ve Sara kilit rol oynuyor ⚽ #GS",
+        "Çift forvet presi meyvelerini veriyor. {topic} konusundaki alan paylaşımı rakip stoperleri hataya zorladı. Taktik deha! ⚽💛❤️ #Galatasaray"
     ]
 }
 
-def extract_or_infer_reporter(topic: str) -> str:
-    t_lower = topic.lower()
-    if "yağız" in t_lower or "yagiz" in t_lower:
-        return "Yağız Sabuncuoğlu"
-    elif "nevzat" in t_lower:
-        return "Nevzat Dindar"
-    elif "fabrizio" in t_lower or "romano" in t_lower:
-        return "Fabrizio Romano"
-    elif "haluk" in t_lower:
-        return "Haluk Yürekli"
-    elif "transfer" in t_lower:
-        return "X Transfer Duyumu"
-    else:
-        return "GS Muhabir Bilgisi"
+FORMAT_SPECIFIC_ADDONS = {
+    "💬 Alıntı & Tepki Tweeti": "\n\nŞu haberin neresinden tutsan elinde kalıyor valla. Şaşırdık mı? Tabii ki hayır! 🦁 #GS",
+    "📊 X Anket Formatı": "\n\nSizce bu konuda ne yapılmalı taraftar?\nA) Tamamen Doğru 🔥\nB) Yanlış Haber ❌\nC) Kararsızım 🤔",
+    "🚨 Flaş Son Dakika": "\n\n💣 FLAŞ GÜNDEM: Sıcak gelişmeler peş peşe geliyor! 💛❤️ #GS"
+}
+
+def clean_topic_str(topic: str) -> str:
+    t = str(topic).strip()
+    t = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', t, flags=re.IGNORECASE)
+    t = re.sub(r'^🚨 X DUYUM \| ', '', t)
+    return t
 
 def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
     """
-    Generates rich, authentic human fan tweets matching @Boss_Osimhen persona or Le Marca style.
+    Generates tweets strictly adhering to selected tone and style options.
     """
     topic = kwargs.get("topic") if "topic" in kwargs else (args[0] if len(args) > 0 else "Galatasaray Transfer Gündemi")
     category = kwargs.get("category") if "category" in kwargs else (args[1] if len(args) > 1 else "Gündem")
@@ -87,11 +110,9 @@ def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
     
     gemini_api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     content = ""
-    clean_topic = str(topic).strip() if topic else "Galatasaray Transfer Gündemi"
-    clean_topic = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', clean_topic, flags=re.IGNORECASE)
-    clean_topic = re.sub(r'^🚨 X DUYUM \| ', '', clean_topic)
+    clean_topic = clean_topic_str(topic)
     
-    sys_prompt = SYSTEM_PROMPT_LE_MARCA if tone == "Le Marca Style (Profesyonel Muhabir)" else SYSTEM_PROMPT_BOSS_OSIMHEN
+    sys_prompt = SYSTEM_PROMPTS.get(tone, SYSTEM_PROMPTS["Organik Taraftar Ağzı (Doğal & Samimi)"])
     
     if GEMINI_AVAILABLE and gemini_api_key:
         try:
@@ -100,7 +121,7 @@ def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
                 'gemini-1.5-flash',
                 generation_config={"temperature": 0.9}
             )
-            prompt = sys_prompt.format(topic=clean_topic, tone=tone, style=style)
+            prompt = sys_prompt.format(topic=clean_topic, style=style)
             response = model.generate_content(prompt)
             content = response.text.strip()
         except Exception as e:
@@ -108,10 +129,14 @@ def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
             content = ""
             
     if not content or len(content) < 20:
-        templates = HUMAN_PERSONA_FALLBACKS.get(tone, HUMAN_PERSONA_FALLBACKS.get(style, HUMAN_PERSONA_FALLBACKS["Organik Taraftar Ağzı (Doğal & Samimi)"]))
+        templates = FALLBACK_GENERATORS.get(tone, FALLBACK_GENERATORS["Organik Taraftar Ağzı (Doğal & Samimi)"])
         raw_template = random.choice(templates)
         content = raw_template.format(topic=clean_topic)
         
+        # Add format-specific addon if selected
+        if style in FORMAT_SPECIFIC_ADDONS and len(content) < 180:
+            content += FORMAT_SPECIFIC_ADDONS[style]
+            
     media_url = None
     media_type = "none"
     

@@ -71,7 +71,7 @@ def safe_generate_tweet(topic, category="Gündem", tone="Organik Taraftar Ağzı
         except Exception:
             return {
                 "title": clean_t[:50],
-                "content": f"Abi valla {clean_t} konusunda söyleyecek çok şey var! Galatasaray bu ligin tek büyüğüdür kardeş net! 💛❤️ #Galatasaray #GS",
+                "content": f"Abi valla {clean_t} duyumunu görünce şaşırmadım! Galatasaray sahada cevabını net verir kardeş 💛❤️ #Galatasaray #GS",
                 "category": category,
                 "media_type": "none",
                 "media_url": None
@@ -169,8 +169,8 @@ def trigger_news_tweet(topic_title):
     generated = safe_generate_tweet(
         topic=clean_title,
         category="Transfer",
-        tone="Organik Taraftar Ağzı (Doğal & Samimi)",
-        style="Tartışma & Yorum Alıcı (Yüksek Yorum)",
+        tone=st.session_state.get('tone_select', "Organik Taraftar Ağzı (Doğal & Samimi)"),
+        style=st.session_state.get('style_select', "Tartışma & Yorum Alıcı (Yüksek Yorum)"),
         mode="emoji"
     )
     st.session_state['last_generated'] = generated
@@ -204,21 +204,21 @@ with tab_create:
         topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", key="topic_box", height=90)
         
         c1, c2, c3 = st.columns(3)
-        category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
+        category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"], key="cat_select")
         tone_input = c2.selectbox("Söylem Tonu:", [
             "Organik Taraftar Ağzı (Doğal & Samimi)", 
             "Le Marca Style (Profesyonel Muhabir)", 
             "Sert & Eleştirel", 
             "Tutkulu Taraftar", 
             "Taktik Analiz"
-        ])
+        ], key="tone_select")
         style_input = c3.selectbox("Etkileşim Formatı:", [
             "Tartışma & Yorum Alıcı (Yüksek Yorum)", 
             "💬 Alıntı & Tepki Tweeti",
             "📊 X Anket Formatı",
             "Haber & Kaynak Formatı (Le Marca)", 
             "🚨 Flaş Son Dakika"
-        ])
+        ], key="style_select")
         
         st.markdown("### 🎯 İçerik Formatı Seçin:")
         btn_c1, btn_c2 = st.columns(2)
@@ -227,7 +227,7 @@ with tab_create:
             if not topic_input.strip():
                 st.warning("Lütfen bir konu veya oyuncu ismi girin.")
             else:
-                with st.spinner(f"'{topic_input}' hakkında organik tweet üretiliyor..."):
+                with st.spinner(f"'{topic_input}' hakkında '{tone_input}' tonunda tweet üretiliyor..."):
                     generated = safe_generate_tweet(
                         topic=topic_input,
                         category=category_input,
@@ -255,10 +255,10 @@ with tab_create:
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
-            st.success(f"'{gen_data['title']}' Konusunda Organik Tweet Üretildi!")
+            st.success(f"'{gen_data['title']}' Konusunda ({tone_input}) Tweeti Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
-            st.text_area("Üretilen Metin:", value=gen_data['content'], height=120, key="preview_text")
+            st.text_area("Üretilen Metin:", value=gen_data['content'], height=130, key="preview_text")
             
             if gen_data.get('media_url') and os.path.exists(gen_data['media_url']):
                 st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=500)
@@ -291,7 +291,7 @@ with tab_create:
                     del st.session_state['last_generated']
                     st.rerun()
                 else:
-                    st.error(f"Paylaşım Hatası: {tweet_res}")
+                    st.error(tweet_res)
 
 # ---------------------------------------------------------
 # TAB 2: TASLAK VE ONAY PANELİ
@@ -334,7 +334,7 @@ with tab_drafts:
                             st.success(f"Tweet Paylaşıldı! ({res})")
                             st.rerun()
                         else:
-                            st.error(f"Paylaşım Hatası: {res}")
+                            st.error(res)
                             
                     if btn_col2.button("💾 Güncelle", key=f"update_{draft['id']}"):
                         db.update_draft(draft['id'], content=edited_content)
@@ -390,7 +390,7 @@ with tab_monetize:
     #### 1. 🗣️ "Organik Taraftar Ağzı" Söylemini Kullanın
     - Kuru muhabir haberi değil; stadyum ve kahvehane sohbeti sıcaklığında (*"Abi valla bakıyorum da...", "Yok artık yahu!", "Net söylüyorum..."*) ifadeler kullanın.
 
-    #### 2. 🔑 Twitter API 401 & 403 Hataları Nasıl Çözülür?
-    - **401 Unauthorized Hatası:** Access Token ile Consumer Key eşleşmiyordur. [developer.twitter.com](https://developer.twitter.com/en/portal/dashboard) adresinde hem API Key'i hem de Access Token'ı **REGENERATE** edin.
-    - **403 Forbidden Hatası:** App Permissions 'Read' durumundadır. 'Read and Write' yapıp yeni Access Token alın.
+    #### 2. 🔑 Twitter API Hataları Çözüm Rehberi
+    - **402 Payment Required (Credits Depleted):** Twitter Developer hesabınızın bu ayki 1,500 ücretsiz tweet kotası tükenmiştir. Ürettiğiniz içerikleri **💾 Taslaklara Kaydet** butonuna basarak kaydedebilir ve istediğiniz zaman kopyalayıp manuel veya API yenilenince paylaşabilirsiniz.
+    - **401 Unauthorized Hatası:** Access Token ile Consumer Key eşleşmiyordur. [developer.twitter.com](https://developer.twitter.com/en/portal/dashboard) adresinde hem API Key hem de Access Token'ı REGENERATE edin.
     """)
