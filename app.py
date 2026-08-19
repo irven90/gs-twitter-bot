@@ -113,13 +113,13 @@ for item in raw_news_items:
 
 default_topic = news_items[0]['title'] if news_items else "🚨 Mauro Icardi transfer gündemi hakkında sıcak gelişme"
 
-# Initialize Session State
+# Initialize Session State Variables
 if 'topic_box' not in st.session_state:
     st.session_state['topic_box'] = default_topic
 
 # Sidebar Setup
 st.sidebar.title("💛❤️ GS Twitter Bot")
-st.sidebar.markdown("**@Boss_Osimhen Organik X Otomasyonu**")
+st.sidebar.markdown("**@Boss_Osimhen Organik Otomasyonu**")
 st.sidebar.caption("🎯 @Boss_Osimhen Taraftar Personası & Viral Akış")
 st.sidebar.divider()
 
@@ -183,12 +183,13 @@ with tab_create:
                         mode="emoji"
                     )
                     st.session_state['last_generated'] = gen
+                    st.session_state['preview_text'] = gen['content']
                     st.rerun()
                     
     with col_gen:
         st.subheader("✏️ @Boss_Osimhen Taraftar Tweet Üretici")
         
-        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", value=st.session_state.get('topic_box', default_topic), height=90)
+        topic_input = st.text_area("İçerik Konusu / Oyuncu İsmi / Duyum Başlığı:", key="topic_box", height=90)
         
         c1, c2, c3 = st.columns(3)
         category_input = c1.selectbox("Kategori:", ["Transfer", "Hakem Eleştirisi", "Maç Analizi", "Gündem", "Genel"])
@@ -222,7 +223,7 @@ with tab_create:
                         mode="emoji"
                     )
                     st.session_state['last_generated'] = gen
-                    st.session_state['topic_box'] = topic_input
+                    st.session_state['preview_text'] = gen['content']
                     st.rerun()
 
         if btn_c2.button("🎨 Görselli Grafik Tweeti Üret", use_container_width=True):
@@ -238,15 +239,18 @@ with tab_create:
                         mode="graphic"
                     )
                     st.session_state['last_generated'] = gen
-                    st.session_state['topic_box'] = topic_input
+                    st.session_state['preview_text'] = gen['content']
                     st.rerun()
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']
+            # FORCE STREAMLIT WIDGET SESSION STATE TO UPDATE
+            st.session_state['preview_text'] = gen_data['content']
+            
             st.success(f"'{gen_data['title']}' Konusunda ({tone_input}) Tweeti Üretildi!")
             
             st.markdown("### 📱 Tweet Önizleme")
-            st.text_area("Üretilen Metin:", value=gen_data['content'], height=130, key="preview_text")
+            st.text_area("Üretilen Metin:", key="preview_text", height=130)
             
             if gen_data.get('media_url') and os.path.exists(gen_data['media_url']):
                 st.image(gen_data['media_url'], caption="Kompakt GS Grafik Kartı (@Boss_Osimhen)", width=500)
@@ -262,6 +266,8 @@ with tab_create:
                 )
                 st.success(f"Taslak kaydedildi! (ID: #{draft_id})")
                 del st.session_state['last_generated']
+                if 'preview_text' in st.session_state:
+                    del st.session_state['preview_text']
                 st.rerun()
                 
             if b2.button("🚀 Anında Paylaş", use_container_width=True):
@@ -277,6 +283,8 @@ with tab_create:
                     st.balloons()
                     st.success(f"Paylaşıldı! (İşlem Kodu: {tweet_res})")
                     del st.session_state['last_generated']
+                    if 'preview_text' in st.session_state:
+                        del st.session_state['preview_text']
                     st.rerun()
                 else:
                     st.error(tweet_res)
