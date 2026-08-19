@@ -25,7 +25,7 @@ if not st.session_state["authenticated"]:
     
     col_p1, col_p2, col_p3 = st.columns([1, 1, 1])
     with col_p2:
-        pin_input = st.text_input("Giriş Kodu (Varsayılan: 1905):", type="password")
+        pin_input = st.text_input("Giriş Kodu:", type="password")
         if st.button("🔓 Giriş Yap", use_container_width=True):
             target_pin = os.getenv("APP_PIN", "1905")
             if pin_input == target_pin:
