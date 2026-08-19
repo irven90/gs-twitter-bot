@@ -162,6 +162,19 @@ tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([
     "💰 X Para Kazanma Taktikleri"
 ])
 
+# Callback function for news buttons to force update topic box & tweet generation
+def trigger_news_tweet(topic_title):
+    clean_title = purge_newspaper_names(topic_title)
+    st.session_state['topic_box'] = clean_title
+    generated = safe_generate_tweet(
+        topic=clean_title,
+        category="Transfer",
+        tone="Le Marca Style",
+        style="Haber Formatı",
+        mode="emoji"
+    )
+    st.session_state['last_generated'] = generated
+
 # ---------------------------------------------------------
 # TAB 1: İÇERİK ÜRETİMİ
 # ---------------------------------------------------------
@@ -178,17 +191,12 @@ with tab_create:
         for idx, item in enumerate(news_items):
             with st.expander(f"📌 {item['source']}: {item['title']}"):
                 st.write(item['summary'])
-                if st.button(f"⚡ Bu Konudan Anında Tweet Üret", key=f"news_btn_{idx}"):
-                    st.session_state['topic_box'] = item['title']
-                    generated = safe_generate_tweet(
-                        topic=item['title'],
-                        category="Transfer",
-                        tone="Le Marca Style",
-                        style="Haber Formatı",
-                        mode="emoji"
-                    )
-                    st.session_state['last_generated'] = generated
-                    st.rerun()
+                st.button(
+                    f"⚡ Bu Konudan Anında Tweet Üret", 
+                    key=f"news_btn_{idx}",
+                    on_click=trigger_news_tweet,
+                    args=(item['title'],)
+                )
                     
     with col_gen:
         st.subheader("✏️ Le Marca Style Tweet Üretici")
@@ -283,7 +291,7 @@ with tab_create:
                     del st.session_state['last_generated']
                     st.rerun()
                 else:
-                    st.error(f"Paylaşım Başarısız: {tweet_res}")
+                    st.error(f"Paylaşım Hatası: {tweet_res}")
 
 # ---------------------------------------------------------
 # TAB 2: TASLAK VE ONAY PANELİ

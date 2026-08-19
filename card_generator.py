@@ -34,9 +34,7 @@ def load_custom_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
 
 def clean_text_for_card(text: str) -> str:
     """Strips emojis AND hashtags from the text so graphic card contains ONLY pure text statements."""
-    # Strip emojis
     text_no_emoji = re.sub(r'[\U00010000-\U0010ffff\u2600-\u26FF\u2700-\u27BF]', '', text)
-    # Strip hashtags (#Hashtag)
     text_no_hashtag = re.sub(r'#\w+', '', text_no_emoji)
     return text_no_hashtag.strip()
 
@@ -84,8 +82,7 @@ THEMES = [
 def generate_gs_card(text: str, category: str = None, title: str = None) -> str:
     """
     Generates a compact 800x380 graphic card.
-    Strips hashtags and emojis so card contains ONLY clean statements.
-    Bottom Right: @Boss_Osimhen
+    Returns absolute file path.
     """
     width, height = 800, 380
     clean_text = clean_text_for_card(text)
@@ -151,6 +148,6 @@ def generate_gs_card(text: str, category: str = None, title: str = None) -> str:
     final_img.paste(img, mask=img.split()[3])
     
     filename = f"gs_card_{os.urandom(4).hex()}.png"
-    filepath = os.path.join(CARDS_DIR, filename)
+    filepath = os.path.abspath(os.path.join(CARDS_DIR, filename))
     final_img.save(filepath, format="PNG")
     return filepath

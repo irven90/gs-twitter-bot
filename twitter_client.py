@@ -51,5 +51,12 @@ def publish_tweet(content: str, media_url: str = None) -> Tuple[bool, str]:
         return True, str(tweet_id)
         
     except Exception as e:
-        print(f"X API Publish Error: {e}")
-        return False, f"Twitter API Hata: {str(e)}"
+        err_msg = str(e)
+        print(f"X API Publish Error: {err_msg}")
+        if "403" in err_msg or "permissions" in err_msg.lower():
+            return False, (
+                "⚠️ X API YAZMA İZNİ EKSİK (403 Forbidden):\n"
+                "Twitter Developer Portal -> App Settings -> User Authentication Settings sekmesinden "
+                "App Permissions yetkisini 'Read' yerine 'Read and Write' yapmanız ve YENİ Access Token üretmeniz gerekmektedir."
+            )
+        return False, f"Twitter API Hata: {err_msg}"
