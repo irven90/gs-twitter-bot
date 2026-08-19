@@ -228,6 +228,7 @@ with tab_create:
                         mode="emoji"
                     )
                     st.session_state['last_generated'] = generated
+                    st.rerun()
 
         if btn_c2.button("🎨 Görselli Grafik Tweeti Üret", use_container_width=True):
             if not topic_input.strip():
@@ -242,6 +243,7 @@ with tab_create:
                         mode="graphic"
                     )
                     st.session_state['last_generated'] = generated
+                    st.rerun()
                     
         if 'last_generated' in st.session_state:
             gen_data = st.session_state['last_generated']

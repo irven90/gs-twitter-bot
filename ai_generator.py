@@ -12,35 +12,67 @@ except ImportError:
 
 LE_MARCA_PROMPT = """
 Sen X (Twitter) platformunda 'Le Marca Sports' ve Fabrizio Romano tarzında profesyonel spor haberleri yayınlayan bir futbol muhabirisin.
-Amacın verilen haber veya duyumu ({topic}) AYNEN LE MARCA SPORTS FORMATINDA yazmak.
+Amacın verilen haber başlığından ({topic}) AYNEN LE MARCA SPORTS FORMATINDA 2-3 CÜMLELİK DETAYLI KISA FUTBOL HABERİ YAZMAK.
 
-LE MARCA SPORTS TWEET FORMATI ÖRNEĞİ:
-🚨 Mauro Icardi, şu an itibarıyla Lazio'nun gündeminden çıktı. Lazio, tüm odağını Andrea Pinamonti'ye verdi.
+LE MARCA SPORTS TWEET FORMATI ÖRNEKLERİ:
+
+Örnek 1:
+🚨 Galatasaray, Lucas Torreira için Avrupa'dan gelen 15 milyon Euro'luk teklifi reddetti. Yönetim ve teknik heyet oyuncunun satılmasına onay vermedi.
+
+(Nevzat Dindar)
+
+Örnek 2:
+⚡ Mauro Icardi, Lazio'nun transfer listesinden tamamen çıktı. İtalyan kulübü odağını alternatif isimlere çevirdi.
 
 (Matteo Moretto)
 
 KURALLAR:
-1. Tweet başı emoji ile başlasın: 🚨 veya 💣 veya ⚡
-2. Haber cümlesi kısa, net, haber diliyle ve vurucu yazısın. Gereksiz dolgu kelimeleri kullanma!
-3. Tweetin ALT SATIRINDA parantez içinde muhabir/kaynak belirt: (Yağız Sabuncuoğlu), (Nevzat Dindar), (Fabrizio Romano) veya (X Duyum).
+1. Tweet başı dikkat çekici emoji ile başlasın: 🚨 veya 💣 veya ⚡
+2. Sadece başlığı tekrarlama! Başlıktaki olayı 2 cümlelik net, profesyonel haber diliyle açıkla.
+3. Tweetin EN ALT SATIRINDA parantez içinde gerçek kaynak/muhabir belirt: Eğer haberde muhabir varsa onu yaz (ör: Nevzat Dindar, Yağız Sabuncuoğlu), yoksa (GS Muhabir Bilgisi), (Florya Haber) veya (X Duyum) yaz.
 4. Asla gazete ismi (Fotomaç, Sözcü vs) kullanma!
-5. Maksimum 200 karakter olsun.
+5. Maksimum 220 karakter olsun.
 """
 
-REPORTERS = ["Yağız Sabuncuoğlu", "Nevzat Dindar", "Fabrizio Romano", "Matteo Moretto", "Haluk Yürekli", "X Duyum"]
+RICH_LE_MARCA_TEMPLATES = [
+    "🚨 {topic}.\n\nGalatasaray yönetimi ve teknik heyet konu hakkında kararını verdi. Sıcak gelişmeler takip ediliyor.\n\n(GS Muhabir Bilgisi)",
+    "⚡ {topic}.\n\nSarı-kırmızı yönetim masadaki şartları değerlendirmeye aldı. İmzaların kısa sürede atılması bekleniyor.\n\n(X Transfer Duyumu)",
+    "💣 {topic}.\n\nFlorya'dan alınan bilgilere göre kulüp yetkilileri temasları sıklaştırdı. Resmi açıklama yakın.\n\n(Florya Haber)"
+]
+
+def extract_or_infer_reporter(topic: str) -> str:
+    """Extracts known reporter from topic text or returns clean authentic insider credit."""
+    t_lower = topic.lower()
+    if "yağız" in t_lower or "yagiz" in t_lower:
+        return "Yağız Sabuncuoğlu"
+    elif "nevzat" in t_lower:
+        return "Nevzat Dindar"
+    elif "fabrizio" in t_lower or "romano" in t_lower:
+        return "Fabrizio Romano"
+    elif "haluk" in t_lower:
+        return "Haluk Yürekli"
+    elif "transfer" in t_lower:
+        return "X Transfer Duyumu"
+    elif "taraftar" in t_lower or "yorum" in t_lower:
+        return "Taraftar Sesi"
+    else:
+        return "GS Muhabir Bilgisi"
 
 def generate_le_marca_fallback(topic: str) -> str:
     clean_t = str(topic).strip()
-    # Strip newspaper names from topic
     clean_t = re.sub(r'(\s*-\s*|\s*\|\s*)(Fotomaç|Sözcü|Haber\s*7|Milliyet|Mynet|A\s*Spor|Fanatik|Hürriyet|TRT\s*Spor|Sabah|NTV\s*Spor).*$', '', clean_t, flags=re.IGNORECASE)
     clean_t = re.sub(r'^🚨 X DUYUM \| ', '', clean_t)
     
-    reporter = random.choice(REPORTERS)
-    return f"🚨 {clean_t}.\n\n({reporter})"
+    reporter = extract_or_infer_reporter(clean_t)
+    
+    if len(clean_t) < 30:
+        return f"🚨 {clean_t} konusunda Galatasaray kulübünde sıcak saatler yaşanıyor. Yönetim şartları değerlendiriyor.\n\n({reporter})"
+    else:
+        return f"🚨 {clean_t}.\n\n(Nevzat Dindar)"
 
 def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
     """
-    Generates tweets matching exact Le Marca Sports format.
+    Generates rich, authentic tweets matching exact Le Marca Sports format.
     """
     topic = kwargs.get("topic") if "topic" in kwargs else (args[0] if len(args) > 0 else "Galatasaray Transfer Gündemi")
     category = kwargs.get("category") if "category" in kwargs else (args[1] if len(args) > 1 else "Gündem")
@@ -59,7 +91,7 @@ def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
             genai.configure(api_key=gemini_api_key)
             model = genai.GenerativeModel(
                 'gemini-1.5-flash',
-                generation_config={"temperature": 0.7}
+                generation_config={"temperature": 0.8}
             )
             prompt = LE_MARCA_PROMPT.format(topic=clean_topic)
             response = model.generate_content(prompt)
@@ -68,7 +100,7 @@ def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
             print(f"Gemini API Error: {e}")
             content = ""
             
-    if not content or len(content) < 15:
+    if not content or len(content) < 20:
         content = generate_le_marca_fallback(clean_topic)
         
     media_url = None
@@ -78,7 +110,7 @@ def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
         try:
             # Generate compact 800x380 graphic card
             media_url = generate_gs_card(
-                text=content[:200],
+                text=content[:220],
                 category=category,
                 title="TARAFTAR SESİ"
             )
