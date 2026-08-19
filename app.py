@@ -68,7 +68,7 @@ st.markdown("""
 # Initialize Database
 db.init_db()
 
-# Fetch latest news upfront for auto-populating default topic
+# Fetch latest X reporter news upfront for auto-populating default topic
 news_items = fetch_latest_football_news()
 default_latest_topic = news_items[0]['title'] if news_items else "Galatasaray Transfer ve VAR Gündemi"
 
@@ -106,7 +106,7 @@ if mock_mode:
 
 # Header
 st.title("⚽ Galatasaray X Duyum & Trend İçerik Botu")
-st.caption("X duyumcuları ve futbol muhabirlerinin sıcak gündemini otomatik takip edin, organık tweetler üretin!")
+st.caption("X duyumcuları ve futbol muhabirlerinin sıcak gündemini otomatik takip edin, organik tweetler üretin!")
 
 # Navigation Tabs
 tab_create, tab_drafts, tab_history, tab_monetize = st.tabs([

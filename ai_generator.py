@@ -50,17 +50,18 @@ HUMAN_FALLBACKS = {
     ]
 }
 
-def generate_tweet_content(
-    topic: str = "Galatasaray Transfer Gündemi",
-    category: str = "Gündem",
-    tone: str = "Organik Taraftar Ağzı (Doğal & Samimi)",
-    style: str = "Tartışma & Yorum Alıcı (Yüksek Yorum)",
-    mode: str = "emoji",
-    **kwargs
-) -> Dict[str, Any]:
+def generate_tweet_content(*args, **kwargs) -> Dict[str, Any]:
     """
-    Robust tweet content generator handling positional and keyword args seamlessly.
+    Robust tweet content generator accepting positional OR keyword arguments safely.
+    Prevents any TypeError crashes regardless of caller signature.
     """
+    # Extract arguments dynamically with defaults
+    topic = kwargs.get("topic") if "topic" in kwargs else (args[0] if len(args) > 0 else "Galatasaray Transfer Gündemi")
+    category = kwargs.get("category") if "category" in kwargs else (args[1] if len(args) > 1 else "Gündem")
+    tone = kwargs.get("tone") if "tone" in kwargs else (args[2] if len(args) > 2 else "Organik Taraftar Ağzı (Doğal & Samimi)")
+    style = kwargs.get("style") if "style" in kwargs else (args[3] if len(args) > 3 else "Tartışma & Yorum Alıcı (Yüksek Yorum)")
+    mode = kwargs.get("mode") if "mode" in kwargs else (args[4] if len(args) > 4 else "emoji")
+    
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     content = ""
     clean_topic = str(topic).strip() if topic else "Galatasaray Transfer Gündemi"
